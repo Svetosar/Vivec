@@ -72,3 +72,20 @@
 Статус: гипотеза · 13.11.2026
 Симптом: в dev запросы к API уходят не туда / cookie не передаётся.
 Фикс: `server.proxy` в `vite.config.js` на `http://127.0.0.1:8080`, запросы только относительными путями.
+
+### G-011 · Zed на Gentoo: бинарь называется `zedit`
+Статус: проверено · 13.11.2026
+Симптом: `which zed` — пусто, хотя `qlist -I | grep zed` показывает `app-editors/zed`.
+Причина: пакет ставит `/usr/bin/zedit` (и `dev.zed.Zed.desktop`), чтобы не конфликтовать с другими `zed`.
+Фикс: запускать `zedit`. Проверять установку через `qlist app-editors/zed`, а не через PATH.
+
+### G-012 · VS Code watcher жрёт CPU на `target/`
+Статус: решение · 13.11.2026
+Симптом: после каждого `cargo build` редактор нагружает диск и греет ядро.
+Причина: в `target/` десятки тысяч файлов.
+Фикс: `files.watcherExclude` и `search.exclude` для `target/`, `node_modules/`, `static/admin/`, `data/` — уже в `.vscode/settings.json`.
+
+### G-013 · minijinja-шаблоны без подсветки
+Статус: решение · 13.11.2026
+Симптом: `{% block %}` и `{{ var }}` выглядят как обычный текст.
+Фикс: файлы называются `*.html.jinja`, в настройках `"files.associations": {"*.html.jinja": "jinja-html"}`, расширение `samuelcolvin.jinjahtml`. Путям в `include_str!` это не мешает.

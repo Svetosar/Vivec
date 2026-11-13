@@ -48,3 +48,31 @@
 
 **Дальше**
 14.11 — каркас на ветке `feature/scaffold`: `Cargo.toml`, `main.rs` + `/healthz`, `error.rs`, `Containerfile`, локальный `podman run`.
+
+---
+
+## 2026-11-13 — выбор редактора
+
+**Сделано**
+- Основной редактор проекта: **VS Code 1.145.0**.
+- Проверено, что установлено: VS Code + rust-analyzer, crates, rust-syntax, GitLens, Git History, containers, html-css.
+- Доустановлено и проверено по версиям: `vue.volar` 3.3.14, `vadimcn.vscode-lldb` 1.12.3, `tamasfe.even-better-toml` 0.21.2, `qwtel.sqlite-viewer` 26.9.1, `samuelcolvin.jinjahtml` 0.20.0, `usernamehw.errorlens` 3.30.0, `esbenp.prettier-vscode` 12.4.0.
+- В репозиторий добавлены `.vscode/settings.json`, `.vscode/extensions.json`, `.vscode/launch.json`.
+
+**Решения**
+- Zed (пакет `app-editors/zed`, бинарь **`zedit`**, не `zed`) — только для быстрых правок и заметок, не для проекта.
+- Один редактор на проект до сдачи. Переключение в середине — запрещено, это скрытая потеря часов.
+- Шаблоны именуются `*.html.jinja`, чтобы работала подсветка Jinja (`files.associations`).
+- `rust-analyzer.check.command = clippy` — ошибки и предупреждения видны в редакторе до сборки.
+- `files.watcherExclude` для `target/`, `node_modules/`, `static/admin/`, `data/` — иначе watcher жрёт CPU на каждом `cargo build`.
+
+**Что нового**
+- У Zed на Gentoo CLI называется `zedit`; `which zed` ничего не находит, хотя пакет установлен. Проверять `qlist app-editors/zed`, а не PATH.
+- Zed технически умеет и Rust-дебаг (DAP/CodeLLDB), и Vue (через `vuejs/language-tools`), то есть выбор был не про «умеет/не умеет», а про стоимость времени.
+- `Error Lens` даёт текст ошибки прямо в строке — для новичка в Rust это не украшение, а ускоритель обучения.
+
+**Урок**
+Выбор инструмента на 2 недели делается по критерию «сколько часов он сэкономит», а не «что приятнее». Расширения установлены и проверены запуском, а не «должно работать».
+
+**Дальше**
+14.11 — каркас на ветке `feature/scaffold`.

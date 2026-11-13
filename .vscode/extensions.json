@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "rust-lang.rust-analyzer",
+    "vadimcn.vscode-lldb",
+    "tamasfe.even-better-toml",
+    "Vue.volar",
+    "esbenp.prettier-vscode",
+    "usernamehw.errorlens",
+    "samuelcolvin.jinjahtml",
+    "qwtel.sqlite-viewer",
+    "serayuzgur.crates",
+    "dustypomerleau.rust-syntax"
+  ]
+}

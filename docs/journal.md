@@ -76,3 +76,33 @@
 
 **Дальше**
 14.11 — каркас на ветке `feature/scaffold`.
+
+---
+
+## 2026-11-13 — каркас (день 1, начали раньше плана)
+
+**Сделано**
+- Ветка `feature/scaffold`.
+- Зависимости поставлены через `cargo add`, версии не выдуманы: axum 0.8.9, tokio 1.54.1, tower-http **0.7.1**, minijinja **3.1.0**, tracing 0.1.44, tracing-subscriber 0.3.23, serde 1.0.229, anyhow 1.0.104. Планировал tower-http 0.6 и minijinja 2 — в 2026 году актуальны другие мажоры.
+- `src/main.rs`: роутер, `/`, `/healthz`, `ServeDir` для `/static`, `TraceLayer`, graceful shutdown.
+- `src/error.rs`: `AppError` + `From<minijinja::Error>` + `IntoResponse`.
+- `templates/layout.html.jinja` и `index.html.jinja` — наследование шаблонов, `include_str!`.
+- `static/style.css`, `Containerfile` (multi-stage), `.dockerignore`.
+
+**Проверено запуском**
+- `cargo check`, `cargo clippy -D warnings` — чисто.
+- Локально: `/` 200, `/healthz` ok, `/static/style.css` 200, `/nope` 404.
+- Образ 98,3 МБ; контейнер отвечает на 8081.
+- RSS процесса — 5,3 МБ. В 1 ГБ сервера помещается с запасом на два порядка.
+- Остановка по SIGTERM — 156 мс вместо 10 секунд.
+
+**Сломалось**
+- Первый образ содержал **пустой бинарник**: `exit 0`, пустые логи. Причина — mtime при `COPY` (G-014). Поймали только запуском контейнера, а не сборкой.
+- Контейнер игнорировал SIGTERM (G-016).
+- `podman stats` показывал 9,8 ГБ вместо 5 МБ (G-015).
+
+**Урок**
+«Successfully tagged» ничего не значит. Проверка — это запрос к живому контейнеру и цифры из `/proc`. Две из трёх поломок были бы невидимы при сборке.
+
+**Дальше**
+15.11 — сервер: аудит портов, DNS, site-блок Caddy, `scripts/deploy.sh`.

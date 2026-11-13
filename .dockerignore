@@ -1,0 +1,9 @@
+target
+data
+.git
+.vscode
+docs
+admin/node_modules
+admin/dist
+static/admin
+*.md

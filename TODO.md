@@ -6,12 +6,13 @@
 ## Сейчас
 
 - [x] Зафиксировать план, стек и правила (скилл `vivec`, `AGENTS.md`)
-- [ ] 14.11 — каркас проекта + контейнер
+- [x] 14.11 — каркас проекта + контейнер (сделано 13.11)
+- [ ] 15.11 — сервер: аудит портов, DNS, site-блок Caddy, `scripts/deploy.sh`
 
 ## План по дням
 
 ### Фаза A. Фундамент
-- [ ] **14.11** — `Cargo.toml`, `main.rs` + `/healthz`, `error.rs`, `Containerfile`, `.dockerignore`, `podman run` локально
+- [x] **14.11** — `Cargo.toml`, `main.rs` + `/healthz`, `error.rs`, `Containerfile`, `.dockerignore`, `podman run` локально
 - [ ] **15.11** — сервер: аудит портов (Caddy/3x-ui), DNS, site-блок Caddy, `scripts/deploy.sh`, контейнер на проде
 - [ ] **16.11** — `0001_init.sql`, пул, сид 3 статей, список, страница статьи, 404
 - [ ] **17.11** — markdown + ammonia, рубрики, транслит slug, CSS → **публичная часть готова**

@@ -1,0 +1,45 @@
+:root {
+  --text: #1a1a1a;
+  --muted: #666;
+  --bg: #fdfdfc;
+  --accent: #7a1f2b;
+  --line: #e3e0da;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 17px/1.6 Georgia, "Times New Roman", serif;
+}
+
+.site-header {
+  border-bottom: 1px solid var(--line);
+  padding: 1rem 1.25rem;
+}
+
+.brand {
+  color: var(--accent);
+  font-size: 1.35rem;
+  font-weight: 700;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
+.content {
+  margin: 0 auto;
+  max-width: 46rem;
+  padding: 2rem 1.25rem;
+}
+
+.site-footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 1rem 1.25rem;
+  text-align: center;
+}

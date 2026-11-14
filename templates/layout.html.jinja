@@ -3,18 +3,39 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Школьная газета{% endblock %}</title>
+  <title>{% block title %}Vivec — школьная газета{% endblock %}</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <header class="site-header">
-    <a class="brand" href="/">Школьная газета</a>
-  </header>
+<div class="page">
 
-  <main class="content">
-    {% block content %}{% endblock %}
-  </main>
+  <div class="topbar">
+    <span class="issue-date">{% block issue_date %}{% endblock %}</span>
+    <span class="issue-no">Выпуск №1</span>
+  </div>
 
-  <footer class="site-footer">Проект Vivec</footer>
+  {% block masthead %}
+  <div class="masthead">
+    <a class="brand" href="/">Vivec</a>
+    <p class="tagline">школьная газета гимназии №7</p>
+  </div>
+
+  <nav class="nav">
+    <a class="nav-item" href="/">Главное</a>
+    <a class="nav-item" href="/">Школа</a>
+    <a class="nav-item" href="/">Спорт</a>
+    <a class="nav-item" href="/">Культура</a>
+    <a class="nav-item" href="/">Мнения</a>
+  </nav>
+  {% endblock %}
+
+  {% block content %}{% endblock %}
+
+  <footer class="footer">
+    <span>© 2026 Vivec · школьная газета гимназии №7</span>
+    <span>Редакция: кабинет 214</span>
+  </footer>
+
+</div>
 </body>
 </html>

@@ -34,8 +34,11 @@ async fn main() -> anyhow::Result<()> {
         .layer(TraceLayer::new_for_http())
         .with_state(App { tpl });
 
-    let addr = "0.0.0.0:8080";
-    let listener = tokio::net::TcpListener::bind(addr).await?;
+    // Порт берём из окружения: на этой машине 8080 занят steamwebhelper,
+    // а за Caddy порт вообще может быть другим.
+    let port = std::env::var("PORT").unwrap_or_else(|_| "8080".to_string());
+    let addr = format!("0.0.0.0:{port}");
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
     tracing::info!("listening on http://{addr}");
     axum::serve(listener, router)
         .with_graceful_shutdown(shutdown_signal())

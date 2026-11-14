@@ -2,43 +2,33 @@
 
 {% block title %}Vivec — школьная газета{% endblock %}
 
-{#- Заглушка до 16.11: статьи придут из базы, пока вёрстка на трёх примерах. -#}
 {% block content %}
 
+{% if hero %}
 <article class="hero">
-  <p class="kicker">Главное</p>
-  <h1 class="hero-title">Ремонт спортзала закончат к декабрю</h1>
-  <p class="hero-lead">Директор обещает новое покрытие, трибуны на 120 мест
-    и раздевалки. Мы выяснили, что уже сделано, а что ещё нет.</p>
-  <p class="hero-meta">Аня Ковалёва · 12 ноября · 6 минут</p>
+  <p class="kicker">{{ hero.rubric }}</p>
+  <h1 class="hero-title"><a href="/{{ hero.slug }}">{{ hero.title }}</a></h1>
+  <p class="hero-lead">{{ hero.lead }}</p>
+  <p class="hero-meta">{{ hero.author }} · {{ hero.date }}</p>
 </article>
+{% else %}
+<article class="hero">
+  <h1 class="hero-title">Пока пусто</h1>
+  <p class="hero-lead">Ни одна статья ещё не опубликована.</p>
+</article>
+{% endif %}
 
+{% if cards %}
 <div class="card-list">
-
+  {% for a in cards %}
   <article class="card">
-    <p class="card-rubric">Школа</p>
-    <h2 class="card-title">День самоуправления: как ученики вели уроки</h2>
-    <p class="card-excerpt">Старшеклассники провели шесть уроков вместо учителей.
-      Рассказываем, что из этого вышло.</p>
-    <p class="card-meta">Миша Орлов · 10 ноября</p>
+    <p class="card-rubric">{{ a.rubric }}</p>
+    <h2 class="card-title"><a href="/{{ a.slug }}">{{ a.title }}</a></h2>
+    <p class="card-excerpt">{{ a.lead }}</p>
+    <p class="card-meta">{{ a.author }} · {{ a.date }}</p>
   </article>
-
-  <article class="card">
-    <p class="card-rubric">Спорт</p>
-    <h2 class="card-title">Пять вопросов учителю физкультуры</h2>
-    <p class="card-excerpt">Зачем нужен спортзал, если есть двор, и почему разминка
-      важнее результата.</p>
-    <p class="card-meta">Лиза Петрова · 8 ноября</p>
-  </article>
-
-  <article class="card">
-    <p class="card-rubric">Культура</p>
-    <h2 class="card-title">Школьный театр показал «Ревизора»</h2>
-    <p class="card-excerpt">Премьера прошла в актовом зале дважды — мест хватило
-      не всем.</p>
-    <p class="card-meta">Даша Смирнова · 5 ноября</p>
-  </article>
-
+  {% endfor %}
 </div>
+{% endif %}
 
 {% endblock %}

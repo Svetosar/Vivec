@@ -140,3 +140,43 @@
 **Дальше**
 15.11 — сервер: аудит (`docs/deploy.md`, раздел 1), site-блок Caddy из `deploy/Caddyfile.snippet`,
 `scripts/deploy.sh` после ответов про init-систему, домен и SELinux.
+
+## 2026-11-14 — база, список, статья, 404 (16.11 частично)
+
+Ветка `feature/db` (от `feature/design`). Дизайн отложен: по плану 16.11 — бэкенд, и это была моя ошибка — начал с вёрстки.
+
+**Сделано**
+- `sqlx 0.9.0` (`default-features = false`, фичи `runtime-tokio`, `sqlite`). Макросы `query!` не
+  используются: запросы текстовые, строки разбираются через `Row::try_get`.
+- `migrations/0001_init.sql` — таблица `articles` (slug, title, rubric, author, lead, body_md,
+  published, published_at, created_at) + индекс под список. Схема вкомпилирована `include_str!`
+  и применяется при старте (`CREATE IF NOT EXISTS`).
+- `migrations/seed.sql` — 4 демо-статьи, `INSERT OR IGNORE`, применяется вручную через `sqlite3`.
+- `src/db.rs` — пул, `create_if_missing`, WAL, путь из `DATA_DIR` (по умолчанию `data`).
+- `src/articles.rs` — `published()` и `by_slug()`, абзацы из `body_md` по пустым строкам,
+  дата `2026-11-12` → `12 ноября` (без ведущего нуля — поймал на «08 ноября»).
+- `src/main.rs` — маршрут `/{slug}`, `fallback` с настоящей страницей 404, `AppError::Db`.
+- Шаблоны: `index` (герой + 3 карточки из базы), `article`, `404`.
+- `Containerfile` — копирует `migrations` (иначе сборка падала бы: файл нужен `include_str!`).
+
+**Проверено запуском**
+- `/` 200, `/remont-sportzala` 200 (4 абзаца), `/den-samoupravleniya` 200, `/nope` 404 со
+  страницей, `/healthz` 200, `/static/style.css` 200.
+- Черновик (`published = 0`) по slug не отдаётся — 404.
+- Даты: «12 ноября», «5 ноября». `cargo clippy -D warnings` — чисто. Release-сборка — чисто.
+- Образ собран (`vivec:db-check`), контейнер стартует и создаёт базу на своей файловой системе.
+
+**Сломалось**
+- Контейнер **не может открыть базу на примонтированном каталоге**: `(code: 14) unable to open
+  database file` при `-v /tmp/...:/data`. Похоже на uid-маппинг rootless podman (в образе
+  `USER 10001`) — G-021, статус «гипотеза», не починено. Это блокер деплоя, а не разработки.
+- `minijinja 3.1` не имеет `Value::from_serialize` и `context!` не принимает обычные структуры
+  (G-022). Включил фичу `serde`, контекст передаю через `Value::from(minijinja::value::Serde(..))`.
+
+**Урок**
+Ошибка планирования: взял 17.11 (CSS и вёрстка) раньше 16.11 (база). Правило на будущее —
+перед сессией смотреть **ближайшую незакрытую строку** плана, а не самую интересную.
+
+**Дальше**
+17.11 — markdown (`pulldown-cmark` + `ammonia`), рубрики, транслит slug; затем вернуться к
+дизайну (ветка `feature/design`, CSS уже готов). Перед деплоем закрыть G-021.

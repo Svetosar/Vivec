@@ -140,3 +140,25 @@ OpenCode после падения **не перезапускает** серв�
 Симптом: `<figure>` и `<blockquote>` шире остальных абзацев и смещены вправо, хотя CSS их не трогает.
 Причина: браузерный `user-agent` стиль `margin: 1em 40px` у `figure` и `blockquote`. Сброс только `p` и `h1..h3` этого не покрывает.
 Фикс: `figure, blockquote { margin: 0; }`. Проверять макет в браузере, а не только в редакторе дизайна.
+
+### G-021 · Контейнер не может открыть базу на примонтированном каталоге
+Статус: гипотеза · 14.11.2026
+Симптом: `podman run -v /tmp/opencode/vdata:/data vivec:db-check` → контейнер падает, в логах
+`(code: 14) unable to open database file`, `/ → 000`. Сам каталог на хосте пустой.
+Причина (не подтверждена фиксом): в образе `USER 10001`. В rootless podman uid 10001 внутри
+контейнера — это не uid хоста, а сабьюид (например, 100999). Каталог на хосте принадлежит
+моему uid, прав на запись у сабьюида нет.
+Что проверить в следующий раз: `podman unshare ls -ln /tmp/opencode/vdata` (владелец внутри
+namespace), затем либо `--userns=keep-id`, либо `chown` каталога под uid из `podman unshare id`,
+либо в образе завести пользователя с uid, совпадающим с хостом.
+Важно для деплоя: на сервере `/srv/vivec/data` тоже надо будет готовить под этот uid —
+это пункт `docs/deploy.md`.
+
+### G-022 · minijinja 3.x: `Value::from_serialize` удалён, `context!` берёт только `Into<Value>`
+Статус: проверено · 14.11.2026
+Симптом: `minijinja::context! { article => article }` → `the trait bound minijinja::Value: From<Article> is not satisfied`. Попытка `Value::from_serialize(...)` → `no function or associated item named from_serialize`.
+Причина: в 3.0 serde стал опциональным (`features = ["serde"]`), `Value::from_serialize` убран,
+`context!` и `render()` конвертируют только через `Into<Value>` (см. CHANGELOG, #528).
+Фикс: включить фичу `serde` и обернуть контекст: `Value::from(minijinja::value::Serde(ctx))`,
+где `ctx` — своя структура с `#[derive(Serialize)]`. Так же пришлось поменять `FromRow`-подход:
+строки разбираются через `Row::try_get` (макросы в проекте запрещены).

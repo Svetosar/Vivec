@@ -1,0 +1,22 @@
+# Блок для существующего Caddyfile. Не заменять файл целиком: на сервере
+# уже могут быть другие сайты и панель 3x-ui.
+#
+# Что заменить:
+#   gazeta.example.ru  — реальный домен (после проверки DNS)
+#   127.0.0.1:8081     — порт на хосте, который публикует контейнер
+#                        (podman run -p 127.0.0.1:8081:8080)
+#
+# Проверка синтаксиса перед перезагрузкой:  caddy validate --config /etc/caddy/Caddyfile
+# Применение:                                systemctl reload caddy  (или rc-service caddy reload)
+
+gazeta.example.ru {
+	encode zstd gzip
+
+	header {
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Content-Type-Options nosniff
+	}
+
+	# Прокси на loopback-порт контейнера: наружу контейнер не смотрит.
+	reverse_proxy 127.0.0.1:8081
+}

@@ -107,3 +107,18 @@
 Симптом: `podman stop` висит 10 секунд, затем `SIGKILL failed to stop container`, соединения обрываются.
 Причина: `axum::serve` без `with_graceful_shutdown` не реагирует на SIGTERM.
 Фикс: `shutdown_signal()` с `tokio::select!` на `ctrl_c` и `SignalKind::terminate`, плюс `with_graceful_shutdown(...)`. После фикса остановка — 156 мс.
+
+### G-017 · MCP-сервер FigCraft живёт ~52 секунды и получает SIGKILL
+Статус: проверено · 14.11.2026
+Симптом: `opencode mcp list` → `✗ figcraft failed: MCP server process exited with code 137`, инструменты пропадают из сессии. Через `timeout`/ `status` воспроизводится: после `mcp connected` сервер умирает через **51 и 53 секунды** (два замера подряд), без единого запроса.
+Что проверено и отвергнуто:
+- не память: `oom_kill` в `/proc/vmstat` = 0, `free` 7 ГБ, `/proc/pressure/memory` = 0;
+- не закрытие окна FigCraft: headless-сервер стартует и отвечает при полностью закрытом приложении;
+- не конфликт двух экземпляров: два параллельных `flatpak run ... mcp` прожили 40 с и вышли с кодом 0;
+- не битый бинарник: та же команда вручную отдаёт `initialize` и 19 инструментов;
+- не простой: экземпляр с открытым stdin прожил 600 с.
+OpenCode после падения **не перезапускает** сервер: в `~/.local/share/opencode/log/opencode.log` новых строк `mcp connected` нет, `touch opencode.json` не помогает.
+Временный обход: изменить **содержимое** `opencode.json` → переподключение на ~50 секунд. Рабочий путь без MCP: `figcraft-cli run <script.json>` — создаёт слои, сохраняет, отдаёт скриншот и CSS.
+Причина не установлена. Следующая гипотеза для проверки: клиентский `ping`/таймаут на стороне OpenCode.
+
+

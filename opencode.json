@@ -1,0 +1,20 @@
+{
+  "mcp": {
+    "servers": {
+      "figcraft": {
+        "type": "local",
+        "command": [
+          "flatpak",
+          "run",
+          "--filesystem=/home/svetosar/vivec",
+          "--command=figcraft-cli",
+          "ai.storyteller.figcraft",
+          "mcp",
+          "--automation-write-root",
+          "/home/svetosar/vivec"
+        ],
+        "timeout": { "startup": 60000, "catalog": 60000 }
+      }
+    }
+  }
+}

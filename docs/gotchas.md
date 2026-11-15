@@ -167,3 +167,12 @@ uid 10001 внутри, каталог становится `vivec:vivec`, за�
 Фикс: включить фичу `serde` и обернуть контекст: `Value::from(minijinja::value::Serde(ctx))`,
 где `ctx` — своя структура с `#[derive(Serialize)]`. Так же пришлось поменять `FromRow`-подход:
 строки разбираются через `Row::try_get` (макросы в проекте запрещены).
+
+### G-023 · pulldown-cmark без default-features не умеет HTML
+Статус: проверено · 15.11.2026
+Симптом: `use pulldown_cmark::{html, Options, Parser};` → `no 'html' in the root`,
+подсказка «found an item that was configured out … gated behind the `html` feature».
+Причина: поставил `default-features = false`, а модуль `html` в 0.13 опционален.
+Фикс: `features = ["html"]`. Итог: `pulldown-cmark = { version = "0.13.6", default-features = false, features = ["html"] }`.
+Побочное: `ammonia 4.2.5` тянет `html5ever`/`markup5ever` — release-сборка в контейнере
+занимает ~3 минуты (было ~2). Это цена за настоящий HTML-парсер в санитайзере.

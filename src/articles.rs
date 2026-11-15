@@ -1,6 +1,26 @@
 use serde::Serialize;
 use sqlx::{Row, sqlite::SqlitePool};
 
+use crate::{markdown, slug};
+
+/// Рубрики газеты. Список фиксированный: по нему строятся ссылки в шапке,
+/// и он же отсекает случайные slug-и — `/rubric/что-угодно` не должен
+/// открывать пустую страницу с кодом 200.
+pub const RUBRICS: [(&str, &str); 4] = [
+    ("Школа", "shkola"),
+    ("Спорт", "sport"),
+    ("Культура", "kultura"),
+    ("Мнения", "mneniya"),
+];
+
+/// Русское имя рубрики по её slug из адреса.
+pub fn rubric_name(rubric_slug: &str) -> Option<&'static str> {
+    RUBRICS
+        .iter()
+        .find(|(_, s)| *s == rubric_slug)
+        .map(|(name, _)| *name)
+}
+
 /// Статья в том виде, в каком её видят шаблоны.
 /// `Serialize` нужен minijinja, чтобы положить статью в контекст шаблона.
 #[derive(Serialize)]
@@ -8,10 +28,12 @@ pub struct Article {
     pub slug: String,
     pub title: String,
     pub rubric: String,
+    /// Транслит рубрики для ссылки: «Школа» → «shkola».
+    pub rubric_slug: String,
     pub author: String,
     pub lead: String,
-    /// Абзацы текста. Markdown добавится 17.11, пока режем по пустым строкам.
-    pub paragraphs: Vec<String>,
+    /// Тело статьи, уже превращённое из markdown в безопасный HTML.
+    pub body_html: String,
     pub date: String,
 }
 
@@ -44,24 +66,30 @@ pub async fn by_slug(pool: &SqlitePool, slug: &str) -> sqlx::Result<Option<Artic
     row.map(to_article).transpose()
 }
 
+/// Статьи одной рубрики. В базе рубрика записана по-русски, в адресе —
+/// транслит, поэтому фильтруем в Rust: статей у школьной газеты немного,
+/// лишний SELECT по всем строкам дешевле, чем отдельная колонка со slug.
+pub async fn by_rubric(pool: &SqlitePool, rubric_slug: &str) -> sqlx::Result<Vec<Article>> {
+    let mut list = published(pool).await?;
+    list.retain(|a| a.rubric_slug == rubric_slug);
+    Ok(list)
+}
+
 /// Разбор строки базы. `try_get` вместо derive: одно место, где видно
 /// имена колонок и типы, без макросов.
 fn to_article(row: sqlx::sqlite::SqliteRow) -> sqlx::Result<Article> {
     let body: String = row.try_get("body_md")?;
     let published_at: Option<String> = row.try_get("published_at")?;
+    let rubric: String = row.try_get("rubric")?;
 
     Ok(Article {
         slug: row.try_get("slug")?,
         title: row.try_get("title")?,
-        rubric: row.try_get("rubric")?,
+        rubric_slug: slug::translit(&rubric),
+        rubric,
         author: row.try_get("author")?,
         lead: row.try_get("lead")?,
-        paragraphs: body
-            .split("\n\n")
-            .map(str::trim)
-            .filter(|p| !p.is_empty())
-            .map(String::from)
-            .collect(),
+        body_html: markdown::to_html(&body),
         date: ru_date(published_at.as_deref().unwrap_or("")),
     })
 }

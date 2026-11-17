@@ -1,6 +1,6 @@
 # TODO — Vivec
 
-Обновлено: 15.11.2026
+Обновлено: 17.11.2026
 Правило: перед задачей — прочитать, после — отметить. Список не живёт в голове.
 
 ## Сейчас
@@ -12,6 +12,7 @@
 - [ ] 15.11 — сервер: **нужен аудит** (`docs/deploy.md`), затем `scripts/deploy.sh` и юнит
 - [x] 16.11 — схема, пул, сид, список, статья, 404 (сделано 14.11); G-021 закрыт 15.11
 - [x] 17.11 — markdown + ammonia, рубрики, транслит slug (сделано 15.11) — **публичная часть готова**
+- [x] 17.11 — подробный учебный гайд `docs/guide.md`
 
 ## План по дням
 
@@ -23,8 +24,8 @@
 - [x] **17.11** — markdown + ammonia, рубрики, транслит slug, CSS → **публичная часть готова** *(сделано 15.11)*
 
 ### Фаза B. Админка
-- [ ] **18.11** — сессии, argon2, cookie, middleware `/admin/*`, `/api/admin/me`
-- [ ] **19.11** — JSON API: list/get/create/update/publish/delete, `AppError`
+- [x] **18.11** — сессии, argon2, cookie, middleware `/admin/*`, `/api/admin/me` *(сделано 17.11)*
+- [x] **19.11** — JSON API: list/get/create/update/publish/delete, `AppError` *(сделано 17.11)*
 - [ ] **20.11** — `create-vue`, router, логин, таблица статей
 - [ ] **21.11** — форма статьи + `md-editor-v3` *(контрольная точка: Vue тонет → откат на textarea)*
 - [ ] **22.11** — загрузка картинок (multipart, `infer`, лимит 8 МБ)
@@ -77,3 +78,6 @@
 - 14.11 — база: `migrations/0001_init.sql` + `seed.sql`, `src/db.rs`, `src/articles.rs`, маршрут `/{slug}`, страница 404; sqlx 0.9 и minijinja с фичей `serde`
 - 15.11 — контейнер пишет в bind-mount: `--userns=keep-id:uid=10001,gid=10001` (G-021)
 - 15.11 — markdown: `pulldown-cmark` + `ammonia` (`src/markdown.rs`), транслит (`src/slug.rs`, тесты), рубрики `/rubric/{slug}`, шаблон рубрики, стили markdown в статье
+- 17.11 — подробный учебный гайд по Rust, SQL, auth, API, шаблонам, JS/Vue и процессу проекта
+- 17.11 — auth: Argon2id, серверные сессии в SQLite, cookie, rate limit, `/api/admin/me`; проверено login/logout
+- 17.11 — admin API: CRUD статей и публикация; проверено черновиком, публикацией, `409`, удалением

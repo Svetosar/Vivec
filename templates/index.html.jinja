@@ -6,7 +6,7 @@
 
 {% if hero %}
 <article class="hero">
-  <p class="kicker">{{ hero.rubric }}</p>
+  <p class="kicker"><a href="/rubric/{{ hero.rubric_slug }}">{{ hero.rubric }}</a></p>
   <h1 class="hero-title"><a href="/{{ hero.slug }}">{{ hero.title }}</a></h1>
   <p class="hero-lead">{{ hero.lead }}</p>
   <p class="hero-meta">{{ hero.author }} · {{ hero.date }}</p>
@@ -22,7 +22,7 @@
 <div class="card-list">
   {% for a in cards %}
   <article class="card">
-    <p class="card-rubric">{{ a.rubric }}</p>
+    <p class="card-rubric"><a href="/rubric/{{ a.rubric_slug }}">{{ a.rubric }}</a></p>
     <h2 class="card-title"><a href="/{{ a.slug }}">{{ a.title }}</a></h2>
     <p class="card-excerpt">{{ a.lead }}</p>
     <p class="card-meta">{{ a.author }} · {{ a.date }}</p>

@@ -14,16 +14,16 @@
 {% block content %}
 <div class="article-wrap">
   <article class="article">
-    <p class="article-rubric">{{ article.rubric }}</p>
+    <p class="article-rubric"><a href="/rubric/{{ article.rubric_slug }}">{{ article.rubric }}</a></p>
     <h1 class="article-title">{{ article.title }}</h1>
     {% if article.lead %}<p class="article-lead">{{ article.lead }}</p>{% endif %}
     <p class="article-meta">{{ article.author }} · {{ article.date }}</p>
     <hr class="article-rule">
 
     <div class="article-body">
-      {% for p in article.paragraphs %}
-      <p>{{ p }}</p>
-      {% endfor %}
+      {# body_html уже прошёл pulldown-cmark + ammonia (src/markdown.rs),
+         поэтому |safe здесь безопасен. #}
+      {{ article.body_html | safe }}
     </div>
   </article>
 </div>

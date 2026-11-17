@@ -1,6 +1,6 @@
 # TODO — Vivec
 
-Обновлено: 14.11.2026
+Обновлено: 15.11.2026
 Правило: перед задачей — прочитать, после — отметить. Список не живёт в голове.
 
 ## Сейчас
@@ -10,17 +10,17 @@
 - [x] 14.11 — FigCraft MCP подключён и проверен (скриншот + экспорт CSS)
 - [x] 14.11 — дизайн: 3 артборда в `design/vivec.figcraft` + вёрстка `static/style.css`
 - [ ] 15.11 — сервер: **нужен аудит** (`docs/deploy.md`), затем `scripts/deploy.sh` и юнит
-- [x] 16.11 — схема, пул, сид, список, статья, 404 (сделано 14.11); остался баг G-021 в контейнере
-- [ ] 17.11 — markdown + ammonia, рубрики, транслит slug
+- [x] 16.11 — схема, пул, сид, список, статья, 404 (сделано 14.11); G-021 закрыт 15.11
+- [x] 17.11 — markdown + ammonia, рубрики, транслит slug (сделано 15.11) — **публичная часть готова**
 
 ## План по дням
 
 ### Фаза A. Фундамент
 - [x] **14.11** — `Cargo.toml`, `main.rs` + `/healthz`, `error.rs`, `Containerfile`, `.dockerignore`, `podman run` локально
 - [x] **14.11** — дизайн: 3 артборда (`home-desktop`, `article-desktop`, `home-mobile`), CSS и шаблоны
-- [ ] **15.11** — сервер: аудит (порты, DNS, Caddy, SELinux, init), site-блок Caddy, `scripts/deploy.sh`, контейнер на проде
+- [ ] **15.11** — сервер: аудит (порты, DNS, Caddy, SELinux, init), site-блок Caddy, `scripts/deploy.sh`, контейнер на проде *(ждёт аудит от пользователя; G-021 в контейнере уже закрыт)*
 - [x] **16.11** — `0001_init.sql`, пул, сид 4 статей, список, страница статьи, 404 *(сделано 14.11)*
-- [ ] **17.11** — markdown + ammonia, рубрики, транслит slug, CSS (ветка `feature/design` уже готова) → **публичная часть готова**
+- [x] **17.11** — markdown + ammonia, рубрики, транслит slug, CSS → **публичная часть готова** *(сделано 15.11)*
 
 ### Фаза B. Админка
 - [ ] **18.11** — сессии, argon2, cookie, middleware `/admin/*`, `/api/admin/me`
@@ -75,3 +75,5 @@
 - 14.11 — `docs/deploy.md` (аудит сервера + порядок деплоя), `deploy/Caddyfile.snippet`
 - 14.11 — `PORT` из окружения (локально 8080 занят steamwebhelper, G-018)
 - 14.11 — база: `migrations/0001_init.sql` + `seed.sql`, `src/db.rs`, `src/articles.rs`, маршрут `/{slug}`, страница 404; sqlx 0.9 и minijinja с фичей `serde`
+- 15.11 — контейнер пишет в bind-mount: `--userns=keep-id:uid=10001,gid=10001` (G-021)
+- 15.11 — markdown: `pulldown-cmark` + `ammonia` (`src/markdown.rs`), транслит (`src/slug.rs`, тесты), рубрики `/rubric/{slug}`, шаблон рубрики, стили markdown в статье

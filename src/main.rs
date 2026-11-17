@@ -13,11 +13,14 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 mod articles;
 mod db;
 mod error;
+mod markdown;
+mod slug;
 use error::AppError;
 
 const LAYOUT: &str = include_str!("../templates/layout.html.jinja");
 const INDEX: &str = include_str!("../templates/index.html.jinja");
 const ARTICLE: &str = include_str!("../templates/article.html.jinja");
+const RUBRIC: &str = include_str!("../templates/rubric.html.jinja");
 const NOT_FOUND: &str = include_str!("../templates/404.html.jinja");
 
 /// Состояние приложения: одно на весь процесс, клонируется в каждый запрос.
@@ -40,11 +43,13 @@ async fn main() -> anyhow::Result<()> {
     tpl.add_template("layout.html.jinja", LAYOUT)?;
     tpl.add_template("index.html.jinja", INDEX)?;
     tpl.add_template("article.html.jinja", ARTICLE)?;
+    tpl.add_template("rubric.html.jinja", RUBRIC)?;
     tpl.add_template("404.html.jinja", NOT_FOUND)?;
 
     let router = Router::new()
         .route("/", get(index))
         .route("/healthz", get(healthz))
+        .route("/rubric/{rubric}", get(rubric))
         // Динамический маршрут последним: статические пути матчатся раньше.
         .route("/{slug}", get(article))
         .nest_service("/static", ServeDir::new("static"))
@@ -132,6 +137,34 @@ async fn article(State(app): State<App>, Path(slug): Path<String>) -> Result<Res
         }
         None => Ok(not_found(State(app)).await),
     }
+}
+
+/// Контекст страницы рубрики.
+#[derive(serde::Serialize)]
+struct RubricCtx {
+    rubric: &'static str,
+    slug: String,
+    articles: Vec<articles::Article>,
+}
+
+/// Страница рубрики: `/rubric/shkola`. Неизвестный slug — 404, а не пустой
+/// список: URL должен существовать только для настоящих рубрик.
+async fn rubric(
+    State(app): State<App>,
+    Path(rubric_slug): Path<String>,
+) -> Result<Response, AppError> {
+    let Some(name) = articles::rubric_name(&rubric_slug) else {
+        return Ok(not_found(State(app)).await);
+    };
+
+    let list = articles::by_rubric(&app.pool, &rubric_slug).await?;
+    let ctx = minijinja::Value::from(minijinja::value::Serde(RubricCtx {
+        rubric: name,
+        slug: rubric_slug,
+        articles: list,
+    }));
+    let html = app.tpl.get_template("rubric.html.jinja")?.render(ctx)?;
+    Ok(Html(html).into_response())
 }
 
 /// Страница 404. Отдельный хендлер, а не просто код: пользователь должен

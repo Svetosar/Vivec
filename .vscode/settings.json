@@ -1,0 +1,37 @@
+{
+  "//": "Настройки проекта Vivec. Коммитятся, чтобы окружение было воспроизводимым.",
+
+  "files.associations": {
+    "*.html.jinja": "jinja-html"
+  },
+
+  "rust-analyzer.check.command": "clippy",
+  "rust-analyzer.inlayHints.lifetimeElisionHints.enable": "never",
+
+  "editor.formatOnSave": true,
+  "editor.rulers": [100],
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.eol": "\n",
+
+  "files.watcherExclude": {
+    "**/target/**": true,
+    "**/node_modules/**": true,
+    "**/static/admin/**": true,
+    "**/data/**": true
+  },
+  "search.exclude": {
+    "**/target": true,
+    "**/node_modules": true,
+    "**/static/admin": true,
+    "**/dist": true
+  },
+
+  "errorLens.enabledDiagnosticLevels": ["error", "warning"],
+
+  "[rust]": { "editor.defaultFormatter": "rust-lang.rust-analyzer" },
+  "[vue]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[javascript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[css]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[html]": { "editor.defaultFormatter": "esbenp.prettier-vscode" }
+}

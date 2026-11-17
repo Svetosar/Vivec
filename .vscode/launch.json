@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug vivec (cargo)",
+      "cargo": {
+        "args": ["build", "--bin=vivec"]
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "RUST_LOG": "debug",
+        "DATA_DIR": "${workspaceFolder}/data"
+      }
+    }
+  ]
+}

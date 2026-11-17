@@ -1,1 +1,6 @@
 /target
+/data
+.env
+deploy/vivec.env
+/admin/node_modules
+/static/admin

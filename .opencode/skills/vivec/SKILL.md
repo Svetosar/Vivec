@@ -42,6 +42,7 @@ description: Правила работы над проектом Vivec — шк�
 - Ветки: `feature/<кратко>`, `fix/<кратко>`, `chore/<кратко>`. Одна фича = одна ветка.
 - Начало работы: `git switch main && git pull --ff-only && git switch -c feature/<имя>`.
 - Коммиты: Conventional Commits — `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`, `deploy:`. Заголовок короткий, тело по-русски при необходимости.
+- Каждый обычный и merge-коммит заканчивается отдельной строкой `AI-assisted: Codex`. Без пометки коммит не создавать.
 - Мерж в `main` только `--no-ff`, только после чек-листа из `references/checklists.md` и явного «да» пользователя.
 - Релиз = тег `v0.x.y` на `main` + деплой.
 - Перед коммитом: `git status` и `git diff --staged` глазами. Никогда не коммитить `data/`, `.env`, `target/`, `node_modules/`, `dist/`, `static/admin/`.

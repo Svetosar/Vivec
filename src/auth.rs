@@ -225,6 +225,23 @@ pub async fn require_session(
     }
 }
 
+pub async fn require_csrf(request: Request, next: Next) -> Response {
+    if matches!(request.method().as_str(), "GET" | "HEAD" | "OPTIONS") {
+        return next.run(request).await;
+    }
+
+    let valid = request
+        .headers()
+        .get("x-vivec-csrf")
+        .and_then(|value| value.to_str().ok())
+        == Some("1");
+    if valid {
+        next.run(request).await
+    } else {
+        AppError::Forbidden.into_response()
+    }
+}
+
 async fn session_exists(pool: &SqlitePool, token: &str) -> sqlx::Result<bool> {
     let row = sqlx::query(
         "SELECT 1 FROM sessions

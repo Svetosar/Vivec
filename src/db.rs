@@ -10,7 +10,7 @@ const ADMIN_SCHEMA: &str = include_str!("../migrations/0002_admin.sql");
 /// Открывает (при необходимости создаёт) файл базы и применяет схему.
 /// Путь берётся из `DATA_DIR`, по умолчанию `data` — как в Containerfile.
 pub async fn open() -> anyhow::Result<SqlitePool> {
-    let dir = std::env::var("DATA_DIR").unwrap_or_else(|_| "data".to_string());
+    let dir = data_dir();
     std::fs::create_dir_all(&dir)?;
 
     let url = format!("sqlite://{dir}/vivec.db");
@@ -24,4 +24,8 @@ pub async fn open() -> anyhow::Result<SqlitePool> {
     sqlx::raw_sql(ADMIN_SCHEMA).execute(&pool).await?;
     tracing::info!("база готова: {dir}/vivec.db");
     Ok(pool)
+}
+
+pub fn data_dir() -> String {
+    std::env::var("DATA_DIR").unwrap_or_else(|_| "data".to_string())
 }

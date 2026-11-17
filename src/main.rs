@@ -1,13 +1,14 @@
 use axum::{
     Router,
-    extract::{Path, State},
-    http::StatusCode,
+    extract::{DefaultBodyLimit, Path, State},
+    http::{HeaderValue, StatusCode, header},
     middleware,
     response::{Html, IntoResponse, Response},
     routing::{get, post},
 };
 use sqlx::sqlite::SqlitePool;
-use tower_http::services::ServeDir;
+use tower_http::services::{ServeDir, ServeFile};
+use tower_http::set_header::SetResponseHeaderLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -18,6 +19,7 @@ mod db;
 mod error;
 mod markdown;
 mod slug;
+mod uploads;
 use error::AppError;
 
 const LAYOUT: &str = include_str!("../templates/layout.html.jinja");
@@ -42,6 +44,7 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let pool = db::open().await?;
+    let uploads_dir = uploads::init().await?;
 
     let mut tpl = minijinja::Environment::new();
     tpl.add_template("layout.html.jinja", LAYOUT)?;
@@ -66,13 +69,21 @@ async fn main() -> anyhow::Result<()> {
         )
         .route("/articles/{id}/publish", post(api::publish))
         .route("/articles/{id}/unpublish", post(api::unpublish))
+        .route(
+            "/uploads",
+            post(uploads::upload).layer(DefaultBodyLimit::max(uploads::MAX_UPLOAD + 64 * 1024)),
+        )
         .route_layer(middleware::from_fn_with_state(
             app.clone(),
             auth::require_session,
         ));
     let admin_api = Router::new()
         .route("/login", post(auth::login))
-        .merge(protected_admin);
+        .merge(protected_admin)
+        .route_layer(middleware::from_fn(auth::require_csrf));
+
+    let admin_files =
+        ServeDir::new("static/admin").fallback(ServeFile::new("static/admin/index.html"));
 
     let router = Router::new()
         .route("/", get(index))
@@ -81,8 +92,19 @@ async fn main() -> anyhow::Result<()> {
         // Динамический маршрут последним: статические пути матчатся раньше.
         .route("/{slug}", get(article))
         .nest("/api/admin", admin_api)
+        .nest_service("/admin", admin_files)
         .nest_service("/static", ServeDir::new("static"))
+        .nest_service("/uploads", ServeDir::new(uploads_dir))
         .fallback(not_found)
+        .layer(DefaultBodyLimit::max(256 * 1024))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::X_CONTENT_TYPE_OPTIONS,
+            HeaderValue::from_static("nosniff"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::REFERRER_POLICY,
+            HeaderValue::from_static("strict-origin-when-cross-origin"),
+        ))
         .layer(TraceLayer::new_for_http())
         .with_state(app);
 

@@ -8,6 +8,7 @@ use axum::{
 #[derive(Debug)]
 pub enum AppError {
     Template(minijinja::Error),
+    Db(sqlx::Error),
 }
 
 /// Позволяет писать `?` на результатах minijinja внутри хендлеров.
@@ -17,14 +18,27 @@ impl From<minijinja::Error> for AppError {
     }
 }
 
+/// Позволяет писать `?` на запросах sqlx.
+impl From<sqlx::Error> for AppError {
+    fn from(e: sqlx::Error) -> Self {
+        AppError::Db(e)
+    }
+}
+
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        match self {
+        // Подробности — в лог, клиенту — только код: в тексте ошибки базы
+        // бывает и путь, и SQL.
+        let (code, msg) = match self {
             AppError::Template(e) => {
-                // Подробности — в лог, клиенту — только код.
                 tracing::error!("template error: {e}");
-                (StatusCode::INTERNAL_SERVER_ERROR, "500").into_response()
+                (StatusCode::INTERNAL_SERVER_ERROR, "500")
             }
-        }
+            AppError::Db(e) => {
+                tracing::error!("db error: {e}");
+                (StatusCode::INTERNAL_SERVER_ERROR, "500")
+            }
+        };
+        (code, msg).into_response()
     }
 }

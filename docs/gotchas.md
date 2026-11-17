@@ -140,3 +140,30 @@ OpenCode после падения **не перезапускает** серв�
 Симптом: `<figure>` и `<blockquote>` шире остальных абзацев и смещены вправо, хотя CSS их не трогает.
 Причина: браузерный `user-agent` стиль `margin: 1em 40px` у `figure` и `blockquote`. Сброс только `p` и `h1..h3` этого не покрывает.
 Фикс: `figure, blockquote { margin: 0; }`. Проверять макет в браузере, а не только в редакторе дизайна.
+
+### G-021 · Контейнер не может открыть базу на примонтированном каталоге
+Статус: проверено · 15.11.2026
+Симптом: `podman run -v /tmp/opencode/vdata:/data vivec:local` → контейнер падает, в логах
+`(code: 14) unable to open database file`, `/ → 000`. Сам каталог на хосте пустой.
+Причина: в образе `USER 10001`. В rootless podman uid 10001 внутри контейнера — это не uid
+хоста, а сабьюид (например, 100999). Каталог на хосте принадлежит моему uid (1000), прав на
+запись у сабьюида нет.
+Проверка: `podman run --rm -v …:/data … sh -c 'id; ls -ld /data'` → `uid=10001(vivec)`,
+`/data` — `root root`. А `podman unshare ls -ln /tmp/opencode/vdata` показывает `0 0`.
+Фикс (проверено): `--userns=keep-id:uid=10001,gid=10001` — uid хоста (1000) отображается на
+uid 10001 внутри, каталог становится `vivec:vivec`, запись идёт.
+Проверено end-to-end: приложение создаёт схему (`база готова: /data/vivec.db`), `/ → 200`
+«Пока пусто» на пустой базе; после `sqlite3 … < migrations/seed.sql` — 4 статьи на главной,
+`/remont-sportzala → 200`. На хосте `vivec.db`, `-shm`, `-wal` принадлежат моему uid.
+Альтернатива без флага (не выбрана): `chown` каталога под uid из `podman unshare id` или
+пользователь в образе с uid хоста. Флаг проще: он же нужен и на сервере.
+Важно для деплоя: на сервере `/srv/vivec/data` создаёт тот же флаг — см. `docs/deploy.md` §2.
+
+### G-022 · minijinja 3.x: `Value::from_serialize` удалён, `context!` берёт только `Into<Value>`
+Статус: проверено · 14.11.2026
+Симптом: `minijinja::context! { article => article }` → `the trait bound minijinja::Value: From<Article> is not satisfied`. Попытка `Value::from_serialize(...)` → `no function or associated item named from_serialize`.
+Причина: в 3.0 serde стал опциональным (`features = ["serde"]`), `Value::from_serialize` убран,
+`context!` и `render()` конвертируют только через `Into<Value>` (см. CHANGELOG, #528).
+Фикс: включить фичу `serde` и обернуть контекст: `Value::from(minijinja::value::Serde(ctx))`,
+где `ctx` — своя структура с `#[derive(Serialize)]`. Так же пришлось поменять `FromRow`-подход:
+строки разбираются через `Row::try_get` (макросы в проекте запрещены).

@@ -11,11 +11,12 @@ RUN mkdir -p src \
 
 COPY src ./src
 COPY templates ./templates
+COPY migrations ./migrations
 
 # ВАЖНО: COPY сохраняет mtime исходников с хоста. Если они старше
 # артефакта от пустой сборки, cargo решит, что менять нечего, и в образ
 # попадёт пустой бинарник (exit 0, пустые логи). Поэтому трогаем файлы.
-RUN find src templates -type f -exec touch {} + \
+RUN find src templates migrations -type f -exec touch {} + \
  && cargo build --release
 
 FROM debian:bookworm-slim

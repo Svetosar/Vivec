@@ -6,8 +6,9 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.104"
 axum = "0.8.9"
-minijinja = "3.1.0"
+minijinja = { version = "3.1.0", features = ["serde"] }
 serde = { version = "1.0.229", features = ["derive"] }
+sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "sqlite"] }
 tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "net", "signal"] }
 tower-http = { version = "0.7.1", features = ["trace", "fs"] }
 tracing = "0.1.44"

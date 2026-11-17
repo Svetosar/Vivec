@@ -42,12 +42,20 @@ dig +short gazeta.example.ru    # куда указывает A-запись
 
 ```sh
 # на сервере
+# --userns=keep-id обязателен: в образе USER 10001, и без него rootless podman
+# не даст процессу писать в /data (G-021).
+mkdir -p /srv/vivec/data
 podman run -d --name vivec \
+  --userns=keep-id:uid=10001,gid=10001 \
   -p 127.0.0.1:8081:8080 \
-  -v /srv/vivec/data:/data \
+  -v /srv/vivec/data:/data:Z \
   --restart=unless-stopped \
   vivec:latest
 ```
+
+Проверка после запуска: `podman logs vivec` → `база готова: /data/vivec.db`,
+`curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8081/` → `200`.
+Если в логах `unable to open database file` — забыт `--userns=keep-id` (G-021).
 
 Блок Caddy — `deploy/Caddyfile.snippet`, добавляется к существующему файлу.
 Порядок: `caddy validate` → `systemctl reload caddy` → `curl -I https://домен/`.

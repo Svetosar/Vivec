@@ -1,0 +1,30 @@
+{% extends "layout.html.jinja" %}
+
+{% block title %}{{ article.title }} — Vivec{% endblock %}
+
+{% block issue_date %}{{ article.date }}{% endblock %}
+
+{% block masthead %}
+<div class="masthead-small">
+  <a class="brand" href="/">Vivec</a>
+  <a class="back-link" href="/">← Все статьи</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="article-wrap">
+  <article class="article">
+    <p class="article-rubric">{{ article.rubric }}</p>
+    <h1 class="article-title">{{ article.title }}</h1>
+    {% if article.lead %}<p class="article-lead">{{ article.lead }}</p>{% endif %}
+    <p class="article-meta">{{ article.author }} · {{ article.date }}</p>
+    <hr class="article-rule">
+
+    <div class="article-body">
+      {% for p in article.paragraphs %}
+      <p>{{ p }}</p>
+      {% endfor %}
+    </div>
+  </article>
+</div>
+{% endblock %}

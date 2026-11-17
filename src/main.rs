@@ -1,16 +1,18 @@
 use axum::{
+    Router,
     extract::{Path, State},
     http::StatusCode,
+    middleware,
     response::{Html, IntoResponse, Response},
-    routing::get,
-    Router,
+    routing::{get, post},
 };
 use sqlx::sqlite::SqlitePool;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
 mod articles;
+mod auth;
 mod db;
 mod error;
 mod markdown;
@@ -28,6 +30,7 @@ const NOT_FOUND: &str = include_str!("../templates/404.html.jinja");
 struct App {
     tpl: minijinja::Environment<'static>,
     pool: SqlitePool,
+    auth: auth::Auth,
 }
 
 #[tokio::main]
@@ -46,16 +49,34 @@ async fn main() -> anyhow::Result<()> {
     tpl.add_template("rubric.html.jinja", RUBRIC)?;
     tpl.add_template("404.html.jinja", NOT_FOUND)?;
 
+    let app = App {
+        tpl,
+        pool,
+        auth: auth::Auth::from_env(),
+    };
+
+    let protected_admin = Router::new()
+        .route("/me", get(auth::me))
+        .route("/logout", post(auth::logout))
+        .route_layer(middleware::from_fn_with_state(
+            app.clone(),
+            auth::require_session,
+        ));
+    let admin_api = Router::new()
+        .route("/login", post(auth::login))
+        .merge(protected_admin);
+
     let router = Router::new()
         .route("/", get(index))
         .route("/healthz", get(healthz))
         .route("/rubric/{rubric}", get(rubric))
         // Динамический маршрут последним: статические пути матчатся раньше.
         .route("/{slug}", get(article))
+        .nest("/api/admin", admin_api)
         .nest_service("/static", ServeDir::new("static"))
         .fallback(not_found)
         .layer(TraceLayer::new_for_http())
-        .with_state(App { tpl, pool });
+        .with_state(app);
 
     // Порт берём из окружения: на этой машине 8080 занят steamwebhelper,
     // а за Caddy порт вообще может быть другим.
@@ -74,7 +95,9 @@ async fn main() -> anyhow::Result<()> {
 /// рестарт — это 10 секунд простоя и обрыв запросов.
 async fn shutdown_signal() {
     let ctrl_c = async {
-        tokio::signal::ctrl_c().await.expect("failed to listen for ctrl-c");
+        tokio::signal::ctrl_c()
+            .await
+            .expect("failed to listen for ctrl-c");
     };
 
     #[cfg(unix)]
@@ -113,7 +136,11 @@ struct IndexCtx {
 async fn index(State(app): State<App>) -> Result<Html<String>, AppError> {
     let mut list = articles::published(&app.pool).await?;
     let mut cards = list.split_off(list.len().min(1));
-    let hero = if list.is_empty() { None } else { Some(list.remove(0)) };
+    let hero = if list.is_empty() {
+        None
+    } else {
+        Some(list.remove(0))
+    };
     cards.truncate(3);
 
     let ctx = minijinja::Value::from(minijinja::value::Serde(IndexCtx { hero, cards }));
@@ -131,7 +158,8 @@ struct ArticleCtx<'a> {
 async fn article(State(app): State<App>, Path(slug): Path<String>) -> Result<Response, AppError> {
     match articles::by_slug(&app.pool, &slug).await? {
         Some(article) => {
-            let ctx = minijinja::Value::from(minijinja::value::Serde(ArticleCtx { article: &article }));
+            let ctx =
+                minijinja::Value::from(minijinja::value::Serde(ArticleCtx { article: &article }));
             let html = app.tpl.get_template("article.html.jinja")?.render(ctx)?;
             Ok(Html(html).into_response())
         }
@@ -170,7 +198,11 @@ async fn rubric(
 /// Страница 404. Отдельный хендлер, а не просто код: пользователь должен
 /// видеть газету, а не белую строку «404».
 async fn not_found(State(app): State<App>) -> Response {
-    match app.tpl.get_template("404.html.jinja").and_then(|t| t.render(())) {
+    match app
+        .tpl
+        .get_template("404.html.jinja")
+        .and_then(|t| t.render(()))
+    {
         Ok(html) => (StatusCode::NOT_FOUND, Html(html)).into_response(),
         Err(e) => {
             tracing::error!("404 template error: {e}");

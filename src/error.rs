@@ -1,7 +1,9 @@
 use axum::{
+    Json,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use serde::Serialize;
 
 /// Единая ошибка приложения. Всё, что может пойти не так в хендлере,
 /// превращается в один из этих вариантов и отдаётся клиенту как HTTP-ответ.
@@ -9,6 +11,16 @@ use axum::{
 pub enum AppError {
     Template(minijinja::Error),
     Db(sqlx::Error),
+    BadRequest(&'static str),
+    Unauthorized,
+    TooManyRequests,
+    Unavailable(&'static str),
+    Internal(String),
+}
+
+#[derive(Serialize)]
+struct ErrorBody {
+    error: &'static str,
 }
 
 /// Позволяет писать `?` на результатах minijinja внутри хендлеров.
@@ -38,7 +50,19 @@ impl IntoResponse for AppError {
                 tracing::error!("db error: {e}");
                 (StatusCode::INTERNAL_SERVER_ERROR, "500")
             }
+            AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
+            AppError::Unauthorized => (StatusCode::UNAUTHORIZED, "требуется вход"),
+            AppError::TooManyRequests => (StatusCode::TOO_MANY_REQUESTS, "слишком много попыток"),
+            AppError::Unavailable(msg) => (StatusCode::SERVICE_UNAVAILABLE, msg),
+            AppError::Internal(error) => {
+                tracing::error!("internal error: {error}");
+                (StatusCode::INTERNAL_SERVER_ERROR, "500")
+            }
         };
-        (code, msg).into_response()
+        if code.is_client_error() || code == StatusCode::SERVICE_UNAVAILABLE {
+            (code, Json(ErrorBody { error: msg })).into_response()
+        } else {
+            (code, msg).into_response()
+        }
     }
 }

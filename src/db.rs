@@ -5,6 +5,7 @@ use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePool};
 /// Схема лежит в репозитории и вкомпилирована в бинарник: файл миграции
 /// не может «потеряться» при деплое.
 const SCHEMA: &str = include_str!("../migrations/0001_init.sql");
+const ADMIN_SCHEMA: &str = include_str!("../migrations/0002_admin.sql");
 
 /// Открывает (при необходимости создаёт) файл базы и применяет схему.
 /// Путь берётся из `DATA_DIR`, по умолчанию `data` — как в Containerfile.
@@ -20,6 +21,7 @@ pub async fn open() -> anyhow::Result<SqlitePool> {
 
     let pool = SqlitePool::connect_with(opts).await?;
     sqlx::raw_sql(SCHEMA).execute(&pool).await?;
+    sqlx::raw_sql(ADMIN_SCHEMA).execute(&pool).await?;
     tracing::info!("база готова: {dir}/vivec.db");
     Ok(pool)
 }

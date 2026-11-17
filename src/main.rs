@@ -11,6 +11,7 @@ use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
+mod api;
 mod articles;
 mod auth;
 mod db;
@@ -58,6 +59,13 @@ async fn main() -> anyhow::Result<()> {
     let protected_admin = Router::new()
         .route("/me", get(auth::me))
         .route("/logout", post(auth::logout))
+        .route("/articles", get(api::list).post(api::create))
+        .route(
+            "/articles/{id}",
+            get(api::get).put(api::update).delete(api::delete),
+        )
+        .route("/articles/{id}/publish", post(api::publish))
+        .route("/articles/{id}/unpublish", post(api::unpublish))
         .route_layer(middleware::from_fn_with_state(
             app.clone(),
             auth::require_session,

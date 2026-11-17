@@ -13,6 +13,8 @@ pub enum AppError {
     Db(sqlx::Error),
     BadRequest(&'static str),
     Unauthorized,
+    NotFound,
+    Conflict(&'static str),
     TooManyRequests,
     Unavailable(&'static str),
     Internal(String),
@@ -52,6 +54,8 @@ impl IntoResponse for AppError {
             }
             AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
             AppError::Unauthorized => (StatusCode::UNAUTHORIZED, "требуется вход"),
+            AppError::NotFound => (StatusCode::NOT_FOUND, "не найдено"),
+            AppError::Conflict(msg) => (StatusCode::CONFLICT, msg),
             AppError::TooManyRequests => (StatusCode::TOO_MANY_REQUESTS, "слишком много попыток"),
             AppError::Unavailable(msg) => (StatusCode::SERVICE_UNAVAILABLE, msg),
             AppError::Internal(error) => {

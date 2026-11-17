@@ -176,3 +176,19 @@ uid 10001 внутри, каталог становится `vivec:vivec`, за�
 Фикс: `features = ["html"]`. Итог: `pulldown-cmark = { version = "0.13.6", default-features = false, features = ["html"] }`.
 Побочное: `ammonia 4.2.5` тянет `html5ever`/`markup5ever` — release-сборка в контейнере
 занимает ~3 минуты (было ~2). Это цена за настоящий HTML-парсер в санитайзере.
+
+### G-024 · `ServeDir::not_found_service` всегда возвращает 404 для SPA
+Статус: проверено · 17.11.2026
+Симптом: `/admin/articles` отдаёт HTML приложения, но HTTP-код 404; роутер Vue после
+загрузки уже не успевает исправить статус.
+Причина: `not_found_service` по документации принудительно выставляет `404` для fallback.
+Фикс: `ServeDir::new("static/admin").fallback(ServeFile::new("static/admin/index.html"))`.
+Проверено: `/admin/articles` → `200`, реальный `/admin/assets/...` → `200`.
+
+### G-025 · create-vue поставил vue-router 5 с уязвимым build-деревом
+Статус: решение · 17.11.2026
+Симптом: `npm audit --omit=dev` показывает 8 high в `vue-router@5` и его build-зависимостях.
+Причина: актуальный шаблон create-vue выбрал router 5, которому для нашей задачи хватает
+стабильного API router 4.
+Фикс: `npm install vue-router@4.6.5`; повторный production-аудит — 0 уязвимостей.
+Dev-дерево всё ещё сообщает high, но Vite/ESLint не входят в серверный контейнер.

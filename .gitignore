@@ -4,3 +4,4 @@
 deploy/vivec.env
 /admin/node_modules
 /static/admin
+/.local/

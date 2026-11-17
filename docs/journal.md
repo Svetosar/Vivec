@@ -269,3 +269,41 @@
 - `src/1.html` удалён пользователем намеренно, восстанавливать не нужно.
 - `README.md` и другие пользовательские/юридические файлы агент не редактирует,
   но их актуальные версии и изменения пользователя включает в коммиты как есть.
+
+## 2026-11-17 — Vue-админка, upload и конец сессии
+
+**Сделано**
+- `create-vue` без TypeScript и Pinia: login, список статей, форма редактора,
+  `vue-router`, единый `api.js`, responsive CSS.
+- `md-editor-v3` 7.1.0: проверен локальный `onUploadImg(files, callback)`.
+- Upload: JPEG/PNG/WebP/GIF по сигнатуре через `infer`, случайное имя, 8 МиБ,
+  файлы в `DATA_DIR/uploads`, раздача через `/uploads`.
+- CSRF-заголовок для всех admin-мутаций, security headers и лимиты тела.
+- SPA отдаётся Rust-сервером из `static/admin`; Node на сервере не работает.
+- Production-аудит npm: 0 уязвимостей; dev-дерево содержит 8 high, но в серверный
+  образ и клиентский production bundle они не входят.
+
+**Проверено запуском**
+- `cargo fmt --check`, 6 тестов, Clippy и release-кандидат debug-бинарника — чисто.
+- `npm run lint` и `npm run build` — чисто.
+- `/admin/` → 200, `/admin/articles` после SPA fallback → 200, asset → 200.
+- Login без CSRF → 403; с CSRF → 200.
+- PNG upload → 200 и `/uploads/...` → 200; CSS как upload → 400.
+- `X-Content-Type-Options` и `Referrer-Policy` присутствуют.
+
+**Сломалось**
+- `ServeDir::not_found_service` намеренно возвращает 404 даже с index.html SPA.
+  Исправлено на `.fallback(ServeFile::new(index))`, после чего deep link даёт 200.
+- create-vue поставил `vue-router` 5, который тянул уязвимые build-пакеты в
+  production-аудит. Выбран стабильный `vue-router` 4.6.5.
+- Первый запуск снова использовал старый обычный бинарник после `cargo test`.
+  Перед HTTP-проверкой обязателен отдельный `cargo build --bin vivec`.
+
+**Не проверено**
+- Скриншоты login/list/editor на desktop и 390 px не сняты: пользователь завершил
+  сессию раньше визуального прохода.
+
+**Дальше**
+1. Визуально проверить три экрана и мобильную ширину.
+2. Сделать публичный поиск и исправить пустую дату/стили Markdown-картинок.
+3. Затем `smoke.sh`, deploy/backup scripts и серверный аудит.

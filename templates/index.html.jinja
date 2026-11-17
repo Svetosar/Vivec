@@ -1,8 +1,44 @@
 {% extends "layout.html.jinja" %}
 
-{% block title %}Главная — Школьная газета{% endblock %}
+{% block title %}Vivec — школьная газета{% endblock %}
 
+{#- Заглушка до 16.11: статьи придут из базы, пока вёрстка на трёх примерах. -#}
 {% block content %}
-<h1>Каркас работает</h1>
-<p>Сервер отвечает, шаблоны рендерятся. Статьи появятся на следующем шаге.</p>
+
+<article class="hero">
+  <p class="kicker">Главное</p>
+  <h1 class="hero-title">Ремонт спортзала закончат к декабрю</h1>
+  <p class="hero-lead">Директор обещает новое покрытие, трибуны на 120 мест
+    и раздевалки. Мы выяснили, что уже сделано, а что ещё нет.</p>
+  <p class="hero-meta">Аня Ковалёва · 12 ноября · 6 минут</p>
+</article>
+
+<div class="card-list">
+
+  <article class="card">
+    <p class="card-rubric">Школа</p>
+    <h2 class="card-title">День самоуправления: как ученики вели уроки</h2>
+    <p class="card-excerpt">Старшеклассники провели шесть уроков вместо учителей.
+      Рассказываем, что из этого вышло.</p>
+    <p class="card-meta">Миша Орлов · 10 ноября</p>
+  </article>
+
+  <article class="card">
+    <p class="card-rubric">Спорт</p>
+    <h2 class="card-title">Пять вопросов учителю физкультуры</h2>
+    <p class="card-excerpt">Зачем нужен спортзал, если есть двор, и почему разминка
+      важнее результата.</p>
+    <p class="card-meta">Лиза Петрова · 8 ноября</p>
+  </article>
+
+  <article class="card">
+    <p class="card-rubric">Культура</p>
+    <h2 class="card-title">Школьный театр показал «Ревизора»</h2>
+    <p class="card-excerpt">Премьера прошла в актовом зале дважды — мест хватило
+      не всем.</p>
+    <p class="card-meta">Даша Смирнова · 5 ноября</p>
+  </article>
+
+</div>
+
 {% endblock %}

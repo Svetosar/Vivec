@@ -333,7 +333,7 @@ serde = { version = "1.0.229", features = ["derive"] }
 
 ```toml
 sha2 = "0.11.1"
-sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "sqlite"] }
+sqlx = { version = "0.9.1", default-features = false, features = ["runtime-tokio", "sqlite"] }
 tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "net", "signal", "fs"] }
 ```
 
@@ -3488,18 +3488,24 @@ RUN npm run build
 - Vite пишет результат в `/static/admin`;
 - Node не попадает в финальный runtime image.
 
-### Строки 9–10: Rust builder
+### Rust builder
 
 ```dockerfile
-FROM rust:1-slim-bookworm AS build
+FROM rust:1-alpine AS build
 WORKDIR /src
+
+ARG CARGO_NET_OFFLINE=false
+ENV CARGO_NET_OFFLINE=${CARGO_NET_OFFLINE}
 ```
 
-- `FROM` выбирает образ с готовым Rust;
+- `FROM` выбирает Alpine-образ с готовым Rust и musl;
 - `AS build` даёт стадии имя `build`;
-- `WORKDIR` создаёт рабочий каталог внутри стадии.
+- `WORKDIR` создаёт рабочий каталог внутри стадии;
+- `ARG` позволяет включить offline-режим только для builder-стадии;
+- `ENV` не попадает в финальный runtime, потому что объявлен до следующего
+  `FROM`.
 
-### Строки 12–18
+### Кэш зависимостей
 
 ```dockerfile
 COPY Cargo.toml Cargo.lock ./
@@ -3515,12 +3521,12 @@ RUN mkdir -p src \
 `rm -rf` здесь выполняется внутри одноразовой build-стадии и удаляет только
 созданный тут каталог `/src/src`.
 
-### Строки 20–22
+### Исходники
 
 Копируются реальные исходники, шаблоны и миграции. Они нужны `include_str!`
 на этапе компиляции.
 
-### Строки 24–28
+### Release-сборка
 
 ```dockerfile
 RUN find src templates migrations -type f -exec touch {} + \
@@ -3531,22 +3537,22 @@ RUN find src templates migrations -type f -exec touch {} + \
 считал старый пустой бинарник актуальным. Это уже реально случалось
 в проекте; комментарий фиксирует причину.
 
-### Строки 30–33
+### Alpine runtime
 
 ```dockerfile
-FROM debian:bookworm-slim
-RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl \
- && rm -rf /var/lib/apt/lists/*
+FROM alpine:3.22
+
+ARG VERSION=0.1.0
+LABEL org.opencontainers.image.title="Vivec" \
+      org.opencontainers.image.version="${VERSION}"
 ```
 
-- начинается чистый runtime-образ;
-- `ca-certificates` нужны для HTTPS;
-- `curl` используется healthcheck;
-- списки apt удаляются после установки;
+- начинается минимальный Alpine runtime с musl;
+- `ARG VERSION` позволяет передать версию при сборке;
+- `LABEL` добавляет метаданные OCI для registry;
 - Node.js в runtime отсутствует.
 
-### Строки 35–38
+### Копирование артефактов
 
 ```dockerfile
 WORKDIR /app
@@ -3561,11 +3567,11 @@ COPY --from=admin-build /static/admin ./static/admin
 - `.dockerignore` может исключать `static/admin`, потому что итоговая папка
   создаётся внутри image, а не берётся с локального диска.
 
-### Строки 40–44
+### Непривилегированный пользователь
 
 ```dockerfile
-RUN useradd --uid 10001 --user-group --no-create-home \
-      --shell /usr/sbin/nologin vivec \
+RUN addgroup -g 10001 vivec \
+ && adduser -D -H -u 10001 -G vivec -s /sbin/nologin vivec \
  && mkdir -p /data \
  && chown vivec:vivec /data
 USER 10001
@@ -3579,18 +3585,24 @@ USER 10001
 `--userns=keep-id:uid=10001,gid=10001`, иначе UID контейнера не совпадёт
 с владельцем bind mount.
 
-### Строки 46–50
+### Переменные и запуск
 
 ```dockerfile
 ENV DATA_DIR=/data \
     RUST_LOG=info
 EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget -q -O /dev/null http://127.0.0.1:8080/healthz || exit 1
+
 CMD ["/app/vivec"]
 ```
 
 - база и uploads живут в `/data`;
 - стандартный уровень логов `info`;
 - порт документируется как 8080;
+- busybox `wget` проверяет `/healthz` без установки `curl`;
+- healthcheck сохраняется только в Docker-совместимом формате образа;
 - контейнер запускает Rust-бинарник.
 
 `EXPOSE` не публикует порт наружу. На хосте podman публикует только loopback,
@@ -3669,6 +3681,7 @@ CMD ["/app/vivec"]
 
 - Vue собирается отдельной Node-стадией.
 - Rust builder копирует `static`, потому что favicon встроен `include_bytes!`.
-- Финальный Debian runtime не содержит Node.
-- Базовые образы закреплены digest.
+- Финальный Alpine/musl runtime не содержит Node.
+- Базовые образы закреплены digest; проверена musl-линковка бинарника.
+- `CARGO_NET_OFFLINE` задаётся только в builder-стадии и не попадает в runtime.
 - Compose использует read-only root, tmpfs, cap-drop и no-new-privileges.

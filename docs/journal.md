@@ -473,3 +473,36 @@
 
 **Дальше**
 Финальный чек-лист и merge только после явного разрешения.
+
+## 2026-11-18 — alpha 0.1.0
+
+**Сделано**
+- Версия проекта и Vue-админки поднята до `0.1.0`.
+- Runtime переведён с Debian на Alpine/musl; Node и Rust остались только в
+  builder-стадиях, бинарник проверен через `ldd`.
+- Добавлены OCI labels, healthcheck через busybox `wget`, offline-режим
+  Cargo ограничен builder-стадией.
+- SQLite-зависимости обновлены до `sqlx 0.9.1` / `libsqlite3-sys 0.39.1`,
+  добавлен индекс для запросов по рубрикам.
+- Docker Hub: `svetosar/vivec:0.1.0` и `latest`, digest
+  `sha256:fc64f8dec3c336f5fd40a7f315b5add7c875efc96350424383bfd671ef7676f0`.
+- Подготовлен вертикальный срез `docs/release-0.1.0.md`.
+
+**Проверено**
+- `cargo fmt`, `cargo check`, Clippy, 11 тестов, `cargo audit` — чисто.
+- Vue lint/build и production `npm audit --omit=dev` — 0 уязвимостей.
+- `scripts/smoke.sh` — `SMOKE PASS`, 29 проверок.
+- Trivy: 0 HIGH/CRITICAL и 0 secrets; Semgrep: 0 findings на 80 файлах.
+- `container-test` поднят через `podman-compose`; `/`, `/archive`, `/healthz`,
+  `/admin/`, логин и `/api/admin/me` отвечают; health — `healthy`.
+- В runtime image нет `CARGO_NET_OFFLINE`, Node отсутствует, UID 10001,
+  `linux/amd64`, `/lib/ld-musl-x86_64.so.1`.
+
+**Урок**
+`podman build --env` может протечь в финальный image. Для сборочных переменных
+нужен `ARG` внутри конкретной стадии, а `HEALTHCHECK` сохраняется только в
+Docker-совместимом формате, не в OCI.
+
+**Дальше**
+После ремонта сервера — аудит ОС/Caddy/Quadlet/SELinux, production env,
+offsite backup, реальный TLS и нагрузка на 1 ГБ RAM.

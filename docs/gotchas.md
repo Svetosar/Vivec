@@ -220,3 +220,21 @@ login не мог разобрать хеш.
 Фикс: перенести `ADMIN_PASSWORD_HASH` и остальные env в `env_file: vivec.env`;
 значения env-файла передаются контейнеру без shell-интерполяции.
 Проверено реальным login `editor/vivec-test`.
+
+### G-029 · `CARGO_NET_OFFLINE` из `podman build --env` попадает в runtime
+Статус: проверено · 18.11.2026
+Симптом: в `podman image inspect` финального образа видна сборочная переменная,
+хотя приложению она не нужна.
+Причина: `podman build --env` задаёт переменную всем стадиям, включая финальную.
+Фикс: объявить `ARG CARGO_NET_OFFLINE=false` и `ENV` только после `FROM` стадии
+Rust builder; проверять runtime через
+`podman image inspect --format '{{json .Config.Env}}'`.
+
+### G-030 · OCI-образ молча теряет Docker HEALTHCHECK
+Статус: проверено · 18.11.2026
+Симптом: `HEALTHCHECK` указан в Containerfile, но Podman предупреждает, что он
+не поддерживается OCI-форматом; в опубликованном образе проверки нет.
+Причина: Docker healthcheck хранится в конфигурации Docker-манифеста, а OCI
+image config не переносит его автоматически.
+Фикс: для образа с healthcheck собирать `podman build --format docker`; после
+публикации проверять `.Config.Healthcheck` в `podman image inspect`.

@@ -20,6 +20,8 @@
 - [x] 18.11 — тестовый multi-stage image и `container-test` через podman-compose
 - [x] 18.11 — аудит безопасности, оптимизации, SEO и UX → `docs/audit-2026-11-18.md`
 - [x] 18.11 — P1/P2 и основные P3 аудита исправлены → `docs/audit-2026-11-18-fixes.md`
+- [x] 18.11 — alpha `0.1.0`: Alpine/musl image, проверки, Docker Hub и tag
+  → `docs/release-0.1.0.md`
 
 ## План по дням
 
@@ -44,6 +46,7 @@
 - [ ] **26.11** — **FEATURE FREEZE**, README, инструкция редактору
 
 ### Фаза D. Сдача
+- [x] **18.11** — alpha `0.1.0`: image, smoke, security scans, Docker Hub
 - [ ] **27.11** — репетиция деплоя с нуля по README
 - [x] **28.11** — бэкапы + **проверенное восстановление** + нагрузка *(сделано 18.11)*
 - [ ] **29.11** — только баги, 5–7 реальных статей, скриншоты
@@ -107,10 +110,14 @@
 - 18.11 — CSP/HSTS/no-store, Secure default, ArticleSummary, московская дата, SEO, archive, 401/dirty guard
 - 18.11 — reserved slug, cache headers, orphan upload cleanup, lazy images, hardened container
 - 18.11 — расширенный smoke: 30+ проверок; stress limiter: 1100 запросов, RSS +2,3 МБ
+- 18.11 — alpha 0.1.0: Alpine/musl, non-root image, Docker Hub digest
+  `sha256:fc64f8dec3c336f5fd40a7f315b5add7c875efc96350424383bfd671ef7676f0`,
+  `docs/release-0.1.0.md`
 
 ## После перерыва
 
 - [x] Обновить `docs/backend-guide.md` под код после аудита.
 - [x] Проверить bundle: language chunks не входят в первичный preload.
 - [x] Закрепить digest базовых образов в `Containerfile`.
-- [ ] Финальный чек-лист и слияние веток в `main` только после явного «да».
+- [x] Финальный чек-лист и слияние веток в `main` только после явного «да».
+- [x] Опубликовать `svetosar/vivec:0.1.0` и `latest`, поставить Git-тег.

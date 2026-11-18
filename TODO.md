@@ -1,6 +1,6 @@
 # TODO — Vivec
 
-Обновлено: 17.11.2026
+Обновлено: 18.11.2026
 Правило: перед задачей — прочитать, после — отметить. Список не живёт в голове.
 
 ## Сейчас
@@ -16,6 +16,7 @@
 - [x] 17.11 — правило provenance: каждый коммит помечается `AI-assisted: Codex`
 - [x] 17.11 — README/LICENSE не редактируются ИИ, но включаются в коммиты как есть
 - [x] 18.11 — визуальный smoke login/list/editor на desktop и 390 px
+- [x] 18.11 — подробный построчный гайд по backend `docs/backend-guide.md`
 
 ## План по дням
 
@@ -96,3 +97,4 @@
 - 18.11 — `scripts/smoke.sh`: 20 проверок auth/API/поиска/upload/XSS на временной БД
 - 18.11 — `scripts/backup.sh` + `scripts/verify-backup.sh`; восстановление 4 статей проверено живым запуском
 - 18.11 — `scripts/load.sh`: 200 запросов, 10 параллельно, 221.7 req/s, RSS 22 МБ локально
+- 18.11 — backend-гайд: Rust-синтаксис, Cargo, SQL, auth, API, upload, main, template и Containerfile

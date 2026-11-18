@@ -47,10 +47,9 @@
 
 ## Осталось
 
-- Админский bundle всё ещё занимает около 2,3 МБ и 126 файлов. Проверено, что
-  language chunks не входят в первичный preload; editor грузит их только на своём
-  route. Оптимизацию можно отложить до feature freeze.
-- Образы `node:24-slim`, `rust:1-slim-bookworm`, `debian:bookworm-slim` не
-  закреплены digest. Сделать перед release, когда будет выбран финальный toolchain.
-- `docs/backend-guide.md` написан до аудита и требует обновления после стабилизации.
+- Админский bundle занимает около 2,3 МБ и 126 файлов. Проверено: первичный HTML
+  грузит только main chunk; language chunks в preload не входят и загружаются
+  только на route редактора. Сетевого регресса на login/list нет.
+- Базовые образы закреплены digest в `Containerfile`.
+- `docs/backend-guide.md` дополнен разделом 30 с post-audit изменениями.
 - Ветки не слиты в `main`; нужен финальный чек-лист и явное разрешение.

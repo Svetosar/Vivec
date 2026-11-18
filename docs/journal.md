@@ -458,3 +458,18 @@
 - Контейнер остановлен; image и named volume сохранены.
 - Временные файлы удалены.
 - Работа лежит в `fix/audit-hardening`, в `main` не слита.
+
+## 2026-11-18 — release prep после аудита
+
+**Сделано**
+- `docs/backend-guide.md` дополнен post-audit изменениями.
+- Базовые образы Node/Rust/Debian закреплены digest.
+- Проверен Vite output: первичный HTML загружает только main chunk; language
+  chunks не входят в preload и нужны только route редактора.
+
+**Проверено**
+- Digest соответствуют локально используемым image.
+- `static/admin` — 2,3 МБ / 126 файлов; это disk footprint, не начальная сеть.
+
+**Дальше**
+Финальный чек-лист и merge только после явного разрешения.

@@ -1,4 +1,5 @@
-FROM node:24-slim AS admin-build
+# node:24-slim
+FROM docker.io/library/node@sha256:0e2646ab57e77b7a384a0cb59b6815b182c77e1f9c3ba36bd8435bd9c4e6680e AS admin-build
 WORKDIR /admin
 
 COPY admin/package.json admin/package-lock.json ./
@@ -6,7 +7,8 @@ RUN npm ci
 COPY admin/ ./
 RUN npm run build
 
-FROM rust:1-slim-bookworm AS build
+# rust:1-slim-bookworm
+FROM docker.io/library/rust@sha256:476f6598b8d14a1f1bc7e58efc67af206ac8a559c37a3401ce512db2582d0ff7 AS build
 WORKDIR /src
 
 COPY Cargo.toml Cargo.lock ./
@@ -28,7 +30,8 @@ COPY static ./static
 RUN find src templates migrations -type f -exec touch {} + \
  && cargo build --release
 
-FROM debian:bookworm-slim
+# debian:bookworm-slim
+FROM docker.io/library/debian@sha256:c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl \
  && rm -rf /var/lib/apt/lists/*

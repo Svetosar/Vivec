@@ -87,8 +87,30 @@ podman logs --tail 20 vivec
 Остановка должна занимать меньше секунды (SIGTERM обрабатывается), иначе смотреть
 `podman stop -t 5 vivec` и журнал.
 
+## 5. Backup и восстановление
+
+Перед обновлением и ежедневно:
+
+```sh
+VIVEC_DATA_DIR=/srv/vivec/data \
+VIVEC_BACKUP_DIR=/srv/vivec/backups \
+./scripts/backup.sh
+```
+
+Скрипт делает SQLite `.backup`, проверяет `PRAGMA integrity_check`, архивирует
+`uploads` и пишет manifest с SHA-256. Хранение по умолчанию — 14 дней.
+После создания копию и manifest нужно скопировать за пределы сервера (правило 3-2-1).
+
+Проверка восстановления:
+
+```sh
+VIVEC_BACKUP_DIR=/srv/vivec/backups ./scripts/verify-backup.sh
+```
+
+Скрипт разворачивает последний backup во временный `DATA_DIR`, запускает приложение
+и проверяет `/healthz` и главную. Расписание cron/timer добавить после аудита init-системы.
+
 ## Ещё не сделано
 
 - `scripts/deploy.sh` — после ответов на аудит: точные команды и проверки.
 - Юнит для init-системы сервера (Quadlet или OpenRC) — зависит от `ps -p 1`.
-- Бэкап базы (`/data/vivec.db`) — по плану 28.11.

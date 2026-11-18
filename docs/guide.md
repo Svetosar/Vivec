@@ -1490,9 +1490,8 @@ Caddy принимает HTTPS и проксирует запросы на 8081.
 
 Пока не готово:
 
-- smoke/deploy/backup scripts;
-- production deploy;
+- production deploy script и init-unit;
 - реальные статьи.
 
-Следующий шаг — `scripts/smoke.sh` и чек-лист перед объединением готовых
-веток, затем deploy/backup scripts.
+Smoke, backup и проверка восстановления уже реализованы. Следующий шаг —
+production deploy после аудита сервера, затем реальные статьи.

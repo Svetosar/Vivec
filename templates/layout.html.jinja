@@ -10,7 +10,7 @@
 <div class="page">
 
   <div class="topbar">
-    <span class="issue-date">{% block issue_date %}{% endblock %}</span>
+    <span class="issue-date">{{ today }}</span>
     <span class="issue-no">Выпуск №1</span>
   </div>
 
@@ -26,6 +26,10 @@
     <a class="nav-item" href="/rubric/sport">Спорт</a>
     <a class="nav-item" href="/rubric/kultura">Культура</a>
     <a class="nav-item" href="/rubric/mneniya">Мнения</a>
+    <form class="nav-search" action="/search" method="get">
+      <input name="q" type="search" value="{{ query|default('') }}" placeholder="Поиск" aria-label="Поиск по газете">
+      <button type="submit">Найти</button>
+    </form>
   </nav>
   {% endblock %}
 

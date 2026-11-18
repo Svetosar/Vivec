@@ -1,6 +1,6 @@
 use axum::{
     Router,
-    extract::{DefaultBodyLimit, Path, State},
+    extract::{DefaultBodyLimit, Path, Query, State},
     http::{HeaderValue, StatusCode, header},
     middleware,
     response::{Html, IntoResponse, Response},
@@ -26,6 +26,7 @@ const LAYOUT: &str = include_str!("../templates/layout.html.jinja");
 const INDEX: &str = include_str!("../templates/index.html.jinja");
 const ARTICLE: &str = include_str!("../templates/article.html.jinja");
 const RUBRIC: &str = include_str!("../templates/rubric.html.jinja");
+const SEARCH: &str = include_str!("../templates/search.html.jinja");
 const NOT_FOUND: &str = include_str!("../templates/404.html.jinja");
 
 /// Состояние приложения: одно на весь процесс, клонируется в каждый запрос.
@@ -34,6 +35,7 @@ struct App {
     tpl: minijinja::Environment<'static>,
     pool: SqlitePool,
     auth: auth::Auth,
+    today: String,
 }
 
 #[tokio::main]
@@ -44,6 +46,7 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let pool = db::open().await?;
+    let today = today_ru(&pool).await?;
     let uploads_dir = uploads::init().await?;
 
     let mut tpl = minijinja::Environment::new();
@@ -51,12 +54,14 @@ async fn main() -> anyhow::Result<()> {
     tpl.add_template("index.html.jinja", INDEX)?;
     tpl.add_template("article.html.jinja", ARTICLE)?;
     tpl.add_template("rubric.html.jinja", RUBRIC)?;
+    tpl.add_template("search.html.jinja", SEARCH)?;
     tpl.add_template("404.html.jinja", NOT_FOUND)?;
 
     let app = App {
         tpl,
         pool,
         auth: auth::Auth::from_env(),
+        today,
     };
 
     let protected_admin = Router::new()
@@ -89,6 +94,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/", get(index))
         .route("/healthz", get(healthz))
         .route("/rubric/{rubric}", get(rubric))
+        .route("/search", get(search))
         // Динамический маршрут последним: статические пути матчатся раньше.
         .route("/{slug}", get(article))
         .nest("/api/admin", admin_api)
@@ -158,6 +164,7 @@ async fn healthz() -> &'static str {
 /// ровно те поля, которые ему нужны, и видно имена.
 #[derive(serde::Serialize)]
 struct IndexCtx {
+    today: String,
     hero: Option<articles::Article>,
     cards: Vec<articles::Article>,
 }
@@ -173,7 +180,11 @@ async fn index(State(app): State<App>) -> Result<Html<String>, AppError> {
     };
     cards.truncate(3);
 
-    let ctx = minijinja::Value::from(minijinja::value::Serde(IndexCtx { hero, cards }));
+    let ctx = minijinja::Value::from(minijinja::value::Serde(IndexCtx {
+        today: app.today.clone(),
+        hero,
+        cards,
+    }));
     let html = app.tpl.get_template("index.html.jinja")?.render(ctx)?;
     Ok(Html(html))
 }
@@ -181,6 +192,7 @@ async fn index(State(app): State<App>) -> Result<Html<String>, AppError> {
 /// Контекст страницы статьи.
 #[derive(serde::Serialize)]
 struct ArticleCtx<'a> {
+    today: &'a str,
     article: &'a articles::Article,
 }
 
@@ -188,8 +200,10 @@ struct ArticleCtx<'a> {
 async fn article(State(app): State<App>, Path(slug): Path<String>) -> Result<Response, AppError> {
     match articles::by_slug(&app.pool, &slug).await? {
         Some(article) => {
-            let ctx =
-                minijinja::Value::from(minijinja::value::Serde(ArticleCtx { article: &article }));
+            let ctx = minijinja::Value::from(minijinja::value::Serde(ArticleCtx {
+                today: &app.today,
+                article: &article,
+            }));
             let html = app.tpl.get_template("article.html.jinja")?.render(ctx)?;
             Ok(Html(html).into_response())
         }
@@ -200,6 +214,7 @@ async fn article(State(app): State<App>, Path(slug): Path<String>) -> Result<Res
 /// Контекст страницы рубрики.
 #[derive(serde::Serialize)]
 struct RubricCtx {
+    today: String,
     rubric: &'static str,
     slug: String,
     articles: Vec<articles::Article>,
@@ -217,6 +232,7 @@ async fn rubric(
 
     let list = articles::by_rubric(&app.pool, &rubric_slug).await?;
     let ctx = minijinja::Value::from(minijinja::value::Serde(RubricCtx {
+        today: app.today.clone(),
         rubric: name,
         slug: rubric_slug,
         articles: list,
@@ -225,13 +241,51 @@ async fn rubric(
     Ok(Html(html).into_response())
 }
 
+#[derive(serde::Deserialize)]
+struct SearchQuery {
+    q: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+struct SearchCtx<'a> {
+    today: &'a str,
+    query: &'a str,
+    articles: Vec<articles::Article>,
+}
+
+async fn search(
+    State(app): State<App>,
+    Query(params): Query<SearchQuery>,
+) -> Result<Html<String>, AppError> {
+    let query = params.q.unwrap_or_default();
+    let query = query.trim();
+    let found = if query.is_empty() {
+        Vec::new()
+    } else {
+        articles::search(&app.pool, query).await?
+    };
+    let ctx = minijinja::Value::from(minijinja::value::Serde(SearchCtx {
+        today: &app.today,
+        query,
+        articles: found,
+    }));
+    let html = app.tpl.get_template("search.html.jinja")?.render(ctx)?;
+    Ok(Html(html))
+}
+
 /// Страница 404. Отдельный хендлер, а не просто код: пользователь должен
 /// видеть газету, а не белую строку «404».
 async fn not_found(State(app): State<App>) -> Response {
+    #[derive(serde::Serialize)]
+    struct NotFoundCtx<'a> {
+        today: &'a str,
+    }
+
+    let ctx = minijinja::Value::from(minijinja::value::Serde(NotFoundCtx { today: &app.today }));
     match app
         .tpl
         .get_template("404.html.jinja")
-        .and_then(|t| t.render(()))
+        .and_then(|t| t.render(ctx))
     {
         Ok(html) => (StatusCode::NOT_FOUND, Html(html)).into_response(),
         Err(e) => {
@@ -239,4 +293,47 @@ async fn not_found(State(app): State<App>) -> Response {
             (StatusCode::INTERNAL_SERVER_ERROR, "500").into_response()
         }
     }
+}
+
+async fn today_ru(pool: &SqlitePool) -> sqlx::Result<String> {
+    let row = sqlx::query("SELECT date('now') AS iso, strftime('%w', 'now') AS weekday")
+        .fetch_one(pool)
+        .await?;
+    let iso: String = sqlx::Row::try_get(&row, "iso")?;
+    let weekday: String = sqlx::Row::try_get(&row, "weekday")?;
+    let weekday = match weekday.as_str() {
+        "0" => "воскресенье",
+        "1" => "понедельник",
+        "2" => "вторник",
+        "3" => "среда",
+        "4" => "четверг",
+        "5" => "пятница",
+        _ => "суббота",
+    };
+    let mut parts = iso.split('-');
+    let year = parts.next().unwrap_or("");
+    let month = parts.next().and_then(|value| value.parse::<usize>().ok());
+    let day = parts.next().and_then(|value| value.parse::<u32>().ok());
+    let formatted = match (month, day) {
+        (Some(month), Some(day)) => {
+            const MONTHS: [&str; 12] = [
+                "января",
+                "февраля",
+                "марта",
+                "апреля",
+                "мая",
+                "июня",
+                "июля",
+                "августа",
+                "сентября",
+                "октября",
+                "ноября",
+                "декабря",
+            ];
+            let name = MONTHS.get(month.wrapping_sub(1)).copied().unwrap_or("");
+            format!("{weekday}, {day} {name} {year}")
+        }
+        _ => String::new(),
+    };
+    Ok(formatted.to_uppercase())
 }

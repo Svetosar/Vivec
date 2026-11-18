@@ -13,6 +13,8 @@ pub const RUBRICS: [(&str, &str); 4] = [
     ("Мнения", "mneniya"),
 ];
 
+pub const SEARCH_LIMIT: usize = 20;
+
 /// Русское имя рубрики по её slug из адреса.
 pub fn rubric_name(rubric_slug: &str) -> Option<&'static str> {
     RUBRICS
@@ -73,6 +75,38 @@ pub async fn by_rubric(pool: &SqlitePool, rubric_slug: &str) -> sqlx::Result<Vec
     let mut list = published(pool).await?;
     list.retain(|a| a.rubric_slug == rubric_slug);
     Ok(list)
+}
+
+/// Поиск по опубликованным статьям без SQLite `NOCASE`: он не меняет
+/// регистр кириллицы. Для школьного объёма фильтрация в Rust предсказуемее.
+pub async fn search(pool: &SqlitePool, query: &str) -> sqlx::Result<Vec<Article>> {
+    let needle = query.to_lowercase();
+    let rows = sqlx::query(
+        "SELECT slug, title, rubric, author, lead, body_md, published_at
+           FROM articles
+          WHERE published = 1
+          ORDER BY published_at DESC, id DESC",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let mut found = Vec::new();
+    for row in rows {
+        let title: String = row.try_get("title")?;
+        let author: String = row.try_get("author")?;
+        let lead: String = row.try_get("lead")?;
+        let body: String = row.try_get("body_md")?;
+        let matches = [title, author, lead, body]
+            .iter()
+            .any(|value| value.to_lowercase().contains(&needle));
+        if matches {
+            found.push(to_article(row)?);
+        }
+        if found.len() == SEARCH_LIMIT {
+            break;
+        }
+    }
+    Ok(found)
 }
 
 /// Разбор строки базы. `try_get` вместо derive: одно место, где видно

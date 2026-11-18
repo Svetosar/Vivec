@@ -17,6 +17,7 @@
 - [x] 17.11 — README/LICENSE не редактируются ИИ, но включаются в коммиты как есть
 - [x] 18.11 — визуальный smoke login/list/editor на desktop и 390 px
 - [x] 18.11 — подробный построчный гайд по backend `docs/backend-guide.md`
+- [x] 18.11 — тестовый multi-stage image и `container-test` через podman-compose
 
 ## План по дням
 
@@ -98,3 +99,5 @@
 - 18.11 — `scripts/backup.sh` + `scripts/verify-backup.sh`; восстановление 4 статей проверено живым запуском
 - 18.11 — `scripts/load.sh`: 200 запросов, 10 параллельно, 221.7 req/s, RSS 22 МБ локально
 - 18.11 — backend-гайд: Rust-синтаксис, Cargo, SQL, auth, API, upload, main, template и Containerfile
+- 18.11 — образ `localhost/vivec:test`: Vue builder + Rust release + Debian runtime без Node
+- 18.11 — `container-test/`: login `editor/vivec-test`, 4 демо-статьи, named volume, порт `127.0.0.1:8081`

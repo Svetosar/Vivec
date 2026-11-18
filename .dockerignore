@@ -5,5 +5,7 @@ data
 docs
 admin/node_modules
 admin/dist
+admin/.eslintcache
+admin/.vscode
 static/admin
 *.md

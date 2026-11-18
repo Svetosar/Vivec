@@ -815,6 +815,13 @@ tracing::info!("база готова: {dir}/vivec.db");
 - `IF NOT EXISTS` позволяет выполнять их на каждом старте;
 - `tracing::info` пишет путь в лог.
 
+Перед логом вызывается `seed_demo_if_empty`:
+
+- `VIVEC_SEED_DEMO=1` включает тестовый режим;
+- функция считает статьи;
+- демо-SQL выполняется только для пустой таблицы;
+- обычный production запуск без env не меняет данные.
+
 ### Строки 26–31
 
 ```rust
@@ -3395,10 +3402,6 @@ curl -i http://127.0.0.1:8099/healthz
 7. Старые сессии не привязаны к username. После смены `ADMIN_USER`
    существующие сессии живут до истечения или logout.
 8. Удаление статьи не удаляет осиротевшие изображения.
-9. `.dockerignore` сейчас содержит `static/admin`. Поэтому текущий production
-   build исключит собранную админку. Перед сборкой образа строку нужно убрать
-   из `.dockerignore`; иначе публичный сайт попадёт в образ, а `/admin/` будет 404.
-
 Это не «скрытые баги для красоты», а осознанные ограничения v1. Каждое
 изменение поведения сначала идёт в `docs/backlog.md`, затем в отдельную
 ветку.
@@ -3468,7 +3471,24 @@ SQL с ?
 Этот файл не исполняется внутри Rust-программы. Он объясняет, как собрать
 бинарник и упаковать его для podman.
 
-### Строки 1–2
+### Строки 1–7: сборка Vue
+
+```dockerfile
+FROM node:24-slim AS admin-build
+WORKDIR /admin
+COPY admin/package.json admin/package-lock.json ./
+RUN npm ci
+COPY admin/ ./
+RUN npm run build
+```
+
+- Node используется только в builder-стадии;
+- `npm ci` ставит точные версии из lock-файла;
+- `npm run build` собирает Vue;
+- Vite пишет результат в `/static/admin`;
+- Node не попадает в финальный runtime image.
+
+### Строки 9–10: Rust builder
 
 ```dockerfile
 FROM rust:1-slim-bookworm AS build
@@ -3479,7 +3499,7 @@ WORKDIR /src
 - `AS build` даёт стадии имя `build`;
 - `WORKDIR` создаёт рабочий каталог внутри стадии.
 
-### Строки 4–10
+### Строки 12–18
 
 ```dockerfile
 COPY Cargo.toml Cargo.lock ./
@@ -3495,12 +3515,12 @@ RUN mkdir -p src \
 `rm -rf` здесь выполняется внутри одноразовой build-стадии и удаляет только
 созданный тут каталог `/src/src`.
 
-### Строки 12–14
+### Строки 20–22
 
 Копируются реальные исходники, шаблоны и миграции. Они нужны `include_str!`
 на этапе компиляции.
 
-### Строки 16–20
+### Строки 24–28
 
 ```dockerfile
 RUN find src templates migrations -type f -exec touch {} + \
@@ -3511,7 +3531,7 @@ RUN find src templates migrations -type f -exec touch {} + \
 считал старый пустой бинарник актуальным. Это уже реально случалось
 в проекте; комментарий фиксирует причину.
 
-### Строки 22–25
+### Строки 30–33
 
 ```dockerfile
 FROM debian:bookworm-slim
@@ -3526,17 +3546,22 @@ RUN apt-get update \
 - списки apt удаляются после установки;
 - Node.js в runtime отсутствует.
 
-### Строки 27–29
+### Строки 35–38
 
-Бинарник копируется из build-стадии. Каталог `static` нужен, потому что
-CSS и собранная Vue-админка раздаются с диска.
+```dockerfile
+WORKDIR /app
+COPY --from=build /src/target/release/vivec /app/vivec
+COPY static ./static
+COPY --from=admin-build /static/admin ./static/admin
+```
 
-Важно: текущий `.dockerignore` исключает `static/admin`. Поэтому на момент
-этого гайда образ получит CSS и публичные файлы, но не Vue-админку. До первого
-production build строку `static/admin` из `.dockerignore` нужно убрать после
-локального `npm --prefix admin run build`.
+- Rust-бинарник копируется из Rust stage;
+- обычная статика копируется из build context;
+- собранная Vue-админка копируется из Node stage;
+- `.dockerignore` может исключать `static/admin`, потому что итоговая папка
+  создаётся внутри image, а не берётся с локального диска.
 
-### Строки 31–35
+### Строки 40–44
 
 ```dockerfile
 RUN useradd --uid 10001 --user-group --no-create-home \
@@ -3554,7 +3579,7 @@ USER 10001
 `--userns=keep-id:uid=10001,gid=10001`, иначе UID контейнера не совпадёт
 с владельцем bind mount.
 
-### Строки 37–41
+### Строки 46–50
 
 ```dockerfile
 ENV DATA_DIR=/data \

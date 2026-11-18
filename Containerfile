@@ -1,3 +1,11 @@
+FROM node:24-slim AS admin-build
+WORKDIR /admin
+
+COPY admin/package.json admin/package-lock.json ./
+RUN npm ci
+COPY admin/ ./
+RUN npm run build
+
 FROM rust:1-slim-bookworm AS build
 WORKDIR /src
 
@@ -27,6 +35,7 @@ RUN apt-get update \
 WORKDIR /app
 COPY --from=build /src/target/release/vivec /app/vivec
 COPY static ./static
+COPY --from=admin-build /static/admin ./static/admin
 
 # Непривилегированный пользователь: контейнер не должен работать от root.
 RUN useradd --uid 10001 --user-group --no-create-home --shell /usr/sbin/nologin vivec \

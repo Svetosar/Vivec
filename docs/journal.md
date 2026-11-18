@@ -403,3 +403,27 @@
 **Проверено**
 - Документ содержит 29 разделов и покрывает все backend-файлы текущей ветки.
 - Ссылка добавлена в основной `docs/guide.md`.
+
+## 2026-11-18 — тестовый образ и podman-compose
+
+**Сделано**
+- `Containerfile` получил Node builder-стадию для Vue; Node отсутствует
+  в финальном image.
+- Rust остаётся в отдельной builder-стадии, runtime — Debian + бинарник + static.
+- `VIVEC_SEED_DEMO=1` наполняет только пустую БД четырьмя демо-статьями.
+- `container-test/docker-compose.yml` и `container-test/vivec.env` дают
+  запуск одной командой через `podman-compose`.
+- Используется named volume `vivec-test-data`, порт `127.0.0.1:8081`.
+
+**Проверено запуском**
+- `podman-compose up -d --build` собрал `localhost/vivec:test`.
+- `/`, `/healthz`, `/admin/` → 200.
+- Login `editor/vivec-test` → 200, `/api/admin/me` → 200.
+- В image отсутствует команда `node`.
+- После restart контейнера сессия и SQLite сохранились в named volume.
+- Тестовая статья удалена; остались четыре демо-материала.
+- Healthcheck итогово — `healthy`.
+
+**Сломалось**
+- podman-compose исказил `$`-части Argon2-хеша в `environment`.
+  Исправлено переносом тестовых значений в `env_file`.

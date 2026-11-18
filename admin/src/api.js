@@ -6,23 +6,30 @@ export class ApiError extends Error {
   }
 }
 
+let unauthorizedHandler = null
+
+export function setUnauthorizedHandler(handler) {
+  unauthorizedHandler = handler
+}
+
 async function request(path, options = {}) {
-  const headers = new Headers(options.headers)
+  const { skipAuthRedirect = false, ...fetchOptions } = options
+  const headers = new Headers(fetchOptions.headers)
   headers.set('Accept', 'application/json')
 
-  let body = options.body
+  let body = fetchOptions.body
   if (body && !(body instanceof FormData)) {
     headers.set('Content-Type', 'application/json')
     body = JSON.stringify(body)
   }
 
-  const method = options.method || 'GET'
+  const method = fetchOptions.method || 'GET'
   if (method !== 'GET' && method !== 'HEAD') {
     headers.set('X-Vivec-CSRF', '1')
   }
 
   const response = await fetch(path, {
-    ...options,
+    ...fetchOptions,
     method,
     headers,
     body,
@@ -44,6 +51,14 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
+    if (
+      response.status === 401 &&
+      path !== '/api/admin/login' &&
+      !skipAuthRedirect &&
+      unauthorizedHandler
+    ) {
+      unauthorizedHandler()
+    }
     const message = data?.error || `Ошибка сервера (${response.status})`
     throw new ApiError(response.status, message)
   }
@@ -51,7 +66,7 @@ async function request(path, options = {}) {
 }
 
 export function getMe() {
-  return request('/api/admin/me')
+  return request('/api/admin/me', { skipAuthRedirect: true })
 }
 
 export function login(credentials) {

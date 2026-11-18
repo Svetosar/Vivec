@@ -50,6 +50,7 @@ DATA_DIR="$data_dir" \
 PORT="$port" \
 ADMIN_USER=editor \
 ADMIN_PASSWORD_HASH="$password_hash" \
+SESSION_COOKIE_SECURE=false \
 ./target/debug/vivec >"$log_file" 2>&1 &
 app_pid=$!
 
@@ -65,6 +66,12 @@ printf 'ok: сервер запущен\n'
 expect_code 200 "главная" "http://127.0.0.1:$port/"
 expect_code 200 "CSS" "http://127.0.0.1:$port/static/style.css"
 expect_code 200 "SPA админки" "http://127.0.0.1:$port/admin/articles"
+admin_asset="$(sed -n 's/.*src="\([^"]*\.js\)".*/\1/p' "$body_file" | head -1)"
+[ -n "$admin_asset" ] || fail "admin asset не найден"
+curl -sS -D "$tmp_dir/admin-asset.headers" -o /dev/null \
+    "http://127.0.0.1:$port$admin_asset"
+grep -qi '^cache-control: public, max-age=31536000, immutable' \
+    "$tmp_dir/admin-asset.headers" || fail "admin asset cache-control"
 expect_code 401 "API без cookie" "http://127.0.0.1:$port/api/admin/me"
 expect_code 403 "login без CSRF" \
     -H 'Content-Type: application/json' \
@@ -73,16 +80,35 @@ expect_code 403 "login без CSRF" \
 
 expect_code 200 "login" \
     -c "$cookie_file" \
+    -D "$tmp_dir/login.headers" \
     -H 'X-Vivec-CSRF: 1' \
     -H 'Content-Type: application/json' \
     -d '{"username":"editor","password":"vivec-smoke-password"}' \
     "http://127.0.0.1:$port/api/admin/login"
+grep -qi '^set-cookie: vivec_session=' "$tmp_dir/login.headers" || fail "cookie не установлена"
+
+curl -sS -D "$tmp_dir/api.headers" -o /dev/null \
+    -b "$cookie_file" "http://127.0.0.1:$port/api/admin/me"
+grep -qi '^cache-control: no-store' "$tmp_dir/api.headers" || fail "API cache-control"
+curl -sS -D "$tmp_dir/html.headers" -o /dev/null "http://127.0.0.1:$port/"
+grep -qi '^content-security-policy:' "$tmp_dir/html.headers" || fail "CSP отсутствует"
+grep -qi '^x-frame-options: DENY' "$tmp_dir/html.headers" || fail "X-Frame-Options"
+grep -qi '^cache-control: no-cache' "$tmp_dir/html.headers" || fail "HTML cache-control"
+curl -sS -D "$tmp_dir/css.headers" -o /dev/null "http://127.0.0.1:$port/static/style.css"
+grep -qi '^cache-control: public, max-age=3600' "$tmp_dir/css.headers" || fail "CSS cache-control"
 
 expect_code 201 "создание черновика" \
     -b "$cookie_file" \
     -H 'X-Vivec-CSRF: 1' \
     -H 'Content-Type: application/json' \
     -d '{"title":"Смоук-проверка","slug":"smoke-check","rubric":"Школа","author":"Smoke","lead":"Проверка публикации","body_md":"Текст проверки."}' \
+    "http://127.0.0.1:$port/api/admin/articles"
+
+expect_code 400 "reserved slug" \
+    -b "$cookie_file" \
+    -H 'X-Vivec-CSRF: 1' \
+    -H 'Content-Type: application/json' \
+    -d '{"title":"Admin","slug":"admin","rubric":"Школа","author":"Smoke","lead":"","body_md":""}' \
     "http://127.0.0.1:$port/api/admin/articles"
 
 expect_code 404 "черновик скрыт" "http://127.0.0.1:$port/smoke-check"
@@ -92,6 +118,17 @@ expect_code 200 "публикация" \
     -X POST \
     "http://127.0.0.1:$port/api/admin/articles/1/publish"
 expect_code 200 "опубликованная статья" "http://127.0.0.1:$port/smoke-check"
+expect_code 200 "архив" "http://127.0.0.1:$port/archive"
+grep -q 'Смоук-проверка' "$body_file" || fail "архив не содержит статью"
+expect_code 200 "robots.txt" "http://127.0.0.1:$port/robots.txt"
+grep -q 'Disallow: /admin' "$body_file" || fail "robots не закрывает admin"
+curl -sS -D "$tmp_dir/sitemap.headers" -o "$tmp_dir/sitemap.xml" \
+    "http://127.0.0.1:$port/sitemap.xml"
+grep -qi '^content-type: application/xml' "$tmp_dir/sitemap.headers" || fail "sitemap content-type"
+grep -q '/smoke-check' "$tmp_dir/sitemap.xml" || fail "sitemap не содержит статью"
+curl -sS -o "$tmp_dir/home.html" "http://127.0.0.1:$port/"
+grep -q 'property="og:title"' "$tmp_dir/home.html" || fail "OG title отсутствует"
+grep -q 'rel="canonical"' "$tmp_dir/home.html" || fail "canonical отсутствует"
 
 expect_code 200 "поиск кириллицы" \
     -G --data-urlencode 'q=СМОУК' \
@@ -131,5 +168,41 @@ expect_code 204 "удаление" \
     -H 'X-Vivec-CSRF: 1' \
     -X DELETE \
     "http://127.0.0.1:$port/api/admin/articles/1"
+
+image_payload="$(printf '{"title":"Upload smoke","slug":"upload-smoke","rubric":"Школа","author":"Smoke","lead":"","body_md":"![x](%s)"}' "$upload_url")"
+expect_code 201 "статья с upload" \
+    -b "$cookie_file" \
+    -H 'X-Vivec-CSRF: 1' \
+    -H 'Content-Type: application/json' \
+    -d "$image_payload" \
+    "http://127.0.0.1:$port/api/admin/articles"
+expect_code 200 "публикация upload-статьи" \
+    -b "$cookie_file" \
+    -H 'X-Vivec-CSRF: 1' \
+    -X POST \
+    "http://127.0.0.1:$port/api/admin/articles/2/publish"
+expect_code 200 "lazy image" "http://127.0.0.1:$port/upload-smoke"
+grep -q 'loading="lazy"' "$body_file" || fail "изображение не lazy"
+expect_code 204 "удаление статьи с upload" \
+    -b "$cookie_file" \
+    -H 'X-Vivec-CSRF: 1' \
+    -X DELETE \
+    "http://127.0.0.1:$port/api/admin/articles/2"
+expect_code 404 "осиротевший upload удалён" "http://127.0.0.1:$port$upload_url"
+
+for index in $(seq 1 20); do
+    curl -sS -o /dev/null \
+        -H 'X-Vivec-CSRF: 1' \
+        -H 'X-Forwarded-For: 203.0.113.77' \
+        -H 'Content-Type: application/json' \
+        -d "{\"username\":\"unknown-$index\",\"password\":\"bad\"}" \
+        "http://127.0.0.1:$port/api/admin/login"
+done
+expect_code 429 "IP rate limit" \
+    -H 'X-Vivec-CSRF: 1' \
+    -H 'X-Forwarded-For: 203.0.113.77' \
+    -H 'Content-Type: application/json' \
+    -d '{"username":"unknown-21","password":"bad"}' \
+    "http://127.0.0.1:$port/api/admin/login"
 
 printf 'SMOKE PASS\n'

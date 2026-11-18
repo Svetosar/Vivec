@@ -1,6 +1,6 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import {
@@ -48,6 +48,9 @@ function replaceArticle(data) {
   Object.assign(article, data)
 }
 
+const savedSnapshot = ref(JSON.stringify(payload()))
+const dirty = computed(() => JSON.stringify(payload()) !== savedSnapshot.value)
+
 async function save() {
   error.value = ''
   saved.value = ''
@@ -57,6 +60,7 @@ async function save() {
       ? await updateArticle(articleId.value, payload())
       : await createArticle(payload())
     replaceArticle(result)
+    savedSnapshot.value = JSON.stringify(payload())
     if (!articleId.value) {
       await router.replace({ name: 'article-edit', params: { id: result.id } })
     }
@@ -115,15 +119,41 @@ async function upload(files, callback) {
   }
 }
 
+function beforeUnload(event) {
+  if (!dirty.value) return
+  event.preventDefault()
+  event.returnValue = ''
+}
+
+function onKeydown(event) {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+    event.preventDefault()
+    if (!busy.value) save()
+  }
+}
+
+onBeforeRouteLeave(() => {
+  if (!dirty.value) return true
+  return window.confirm('Есть несохранённые изменения. Выйти без сохранения?')
+})
+
 onMounted(async () => {
+  window.addEventListener('beforeunload', beforeUnload)
+  window.addEventListener('keydown', onKeydown)
   if (!articleId.value) return
   try {
     replaceArticle(await getArticle(articleId.value))
+    savedSnapshot.value = JSON.stringify(payload())
   } catch (requestError) {
     error.value = requestError.message
   } finally {
     loading.value = false
   }
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', beforeUnload)
+  window.removeEventListener('keydown', onKeydown)
 })
 </script>
 

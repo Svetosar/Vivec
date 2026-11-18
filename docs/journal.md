@@ -427,3 +427,34 @@
 **Сломалось**
 - podman-compose исказил `$`-части Argon2-хеша в `environment`.
   Исправлено переносом тестовых значений в `env_file`.
+
+## 2026-11-18 — исправление аудита
+
+**P1**
+- Лимитер переведён на username + IP, map ограничены и очищаются.
+- Argon2 выполняется только для известного username, через `spawn_blocking`
+  и семафор на одну проверку.
+- XFF берётся из последнего адреса Caddy; доверие прокси явно через `TRUST_PROXY`.
+- 1100 уникальных попыток: 1024 × 401, 76 × 429, RSS 17,6 → 20,0 МБ.
+
+**P2**
+- Secure cookie по умолчанию.
+- CSP, XFO, HSTS и no-store.
+- Summary без Markdown, SQL-фильтр рубрик, московская дата на запрос.
+- Meta/OG/canonical, robots, sitemap и archive.
+- 401 redirect, dirty guard и Ctrl+S.
+- Deploy env example и Quadlet.
+
+**P3**
+- Reserved slug, Cache-Control, orphan uploads, upload quota, lazy images.
+- Focus-visible, admin noindex, hardened compose.
+
+**Проверено**
+- 11 тестов, Clippy, Vue lint/build, расширенный smoke.
+- Headless Chrome: dirty guard и 401 redirect.
+- Hardened image rebuilt; HTTP, SEO, headers, login и upload проверены.
+
+**Перерыв**
+- Контейнер остановлен; image и named volume сохранены.
+- Временные файлы удалены.
+- Работа лежит в `fix/audit-hardening`, в `main` не слита.

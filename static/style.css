@@ -102,6 +102,11 @@ a { color: inherit; text-decoration: none; }
 
 .nav-search input:focus { width: 130px; }
 
+.nav-search input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .nav-search button {
   border: 0;
   padding: 3px 0;

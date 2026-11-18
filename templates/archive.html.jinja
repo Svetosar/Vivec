@@ -1,0 +1,35 @@
+{% extends "layout.html.jinja" %}
+
+{% block title %}Все статьи — Vivec{% endblock %}
+
+{% block masthead %}
+<div class="masthead-small">
+  <a class="brand" href="/">Vivec</a>
+  <a class="back-link" href="/">← На главную</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="rubric-wrap">
+  <p class="rubric-kicker">Архив</p>
+  <h1 class="rubric-title">Все статьи</h1>
+  <p class="rubric-count">
+    {% if articles|length == 0 %}Пока ни одной статьи{% else %}Материалов: {{ articles|length }}{% endif %}
+  </p>
+
+  {% if articles %}
+  <div class="rubric-list">
+    {% for a in articles %}
+    <article class="rubric-item">
+      <p class="card-rubric"><a href="/rubric/{{ a.rubric_slug }}">{{ a.rubric }}</a></p>
+      <h2 class="rubric-item-title"><a href="/{{ a.slug }}">{{ a.title }}</a></h2>
+      <p class="rubric-item-lead">{{ a.lead }}</p>
+      <p class="rubric-item-meta">{{ a.author }} · {{ a.date }}</p>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="rubric-empty">Редакция ещё не опубликовала материалы.</p>
+  {% endif %}
+</div>
+{% endblock %}

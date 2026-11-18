@@ -20,6 +20,7 @@ RUN mkdir -p src \
 COPY src ./src
 COPY templates ./templates
 COPY migrations ./migrations
+COPY static ./static
 
 # ВАЖНО: COPY сохраняет mtime исходников с хоста. Если они старше
 # артефакта от пустой сборки, cargo решит, что менять нечего, и в образ

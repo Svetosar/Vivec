@@ -7,13 +7,24 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use sqlx::{Row, sqlite::SqlitePool};
 
-use crate::{App, articles::RUBRICS, error::AppError, slug};
+use crate::{App, articles::RUBRICS, error::AppError, slug, uploads};
 
 const MAX_TITLE: usize = 200;
 const MAX_SLUG: usize = 120;
 const MAX_AUTHOR: usize = 100;
 const MAX_LEAD: usize = 500;
 const MAX_BODY: usize = 200_000;
+const RESERVED_SLUGS: [&str; 9] = [
+    "admin",
+    "api",
+    "uploads",
+    "static",
+    "search",
+    "healthz",
+    "archive",
+    "robots-txt",
+    "sitemap-xml",
+];
 
 #[derive(Serialize)]
 pub struct ArticleSummary {
@@ -145,7 +156,7 @@ pub async fn update(
     Json(input): Json<ArticleInput>,
 ) -> Result<Json<AdminArticle>, AppError> {
     let input = validate(input)?;
-    get_by_id(&app.pool, id).await?;
+    let existing = get_by_id(&app.pool, id).await?;
 
     let result = sqlx::query(
         "UPDATE articles
@@ -170,6 +181,7 @@ pub async fn update(
         Err(error) => return Err(error.into()),
     }
 
+    uploads::cleanup_unused(&app.pool, &existing.body_md).await;
     Ok(Json(get_by_id(&app.pool, id).await?))
 }
 
@@ -179,7 +191,7 @@ pub async fn publish(
 ) -> Result<Json<AdminArticle>, AppError> {
     let result = sqlx::query(
         "UPDATE articles
-            SET published = 1, published_at = date('now')
+            SET published = 1, published_at = date('now', '+3 hours')
           WHERE id = ?",
     )
     .bind(id)
@@ -206,6 +218,7 @@ pub async fn unpublish(
 }
 
 pub async fn delete(State(app): State<App>, Path(id): Path<i64>) -> Result<StatusCode, AppError> {
+    let existing = get_by_id(&app.pool, id).await?;
     let result = sqlx::query("DELETE FROM articles WHERE id = ?")
         .bind(id)
         .execute(&app.pool)
@@ -213,6 +226,7 @@ pub async fn delete(State(app): State<App>, Path(id): Path<i64>) -> Result<Statu
     if result.rows_affected() == 0 {
         return Err(AppError::NotFound);
     }
+    uploads::cleanup_unused(&app.pool, &existing.body_md).await;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -285,6 +299,9 @@ fn validate(mut input: ArticleInput) -> Result<ArticleInput, AppError> {
     if input.slug.is_empty() || input.slug.chars().count() > MAX_SLUG {
         return Err(AppError::BadRequest("slug: от 1 до 120 символов"));
     }
+    if RESERVED_SLUGS.contains(&input.slug.as_str()) {
+        return Err(AppError::BadRequest("этот slug занят системным маршрутом"));
+    }
 
     Ok(input)
 }
@@ -322,6 +339,13 @@ mod tests {
     fn unknown_rubric_is_rejected() {
         let mut input = article();
         input.rubric = "Сплетни".to_string();
+        assert!(validate(input).is_err());
+    }
+
+    #[test]
+    fn reserved_slug_is_rejected() {
+        let mut input = article();
+        input.slug = "admin".to_string();
         assert!(validate(input).is_err());
     }
 }

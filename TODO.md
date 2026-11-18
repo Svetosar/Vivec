@@ -18,6 +18,8 @@
 - [x] 18.11 — визуальный smoke login/list/editor на desktop и 390 px
 - [x] 18.11 — подробный построчный гайд по backend `docs/backend-guide.md`
 - [x] 18.11 — тестовый multi-stage image и `container-test` через podman-compose
+- [x] 18.11 — аудит безопасности, оптимизации, SEO и UX → `docs/audit-2026-11-18.md`
+- [x] 18.11 — P1/P2 и основные P3 аудита исправлены → `docs/audit-2026-11-18-fixes.md`
 
 ## План по дням
 
@@ -101,3 +103,14 @@
 - 18.11 — backend-гайд: Rust-синтаксис, Cargo, SQL, auth, API, upload, main, template и Containerfile
 - 18.11 — образ `localhost/vivec:test`: Vue builder + Rust release + Debian runtime без Node
 - 18.11 — `container-test/`: login `editor/vivec-test`, 4 демо-статьи, named volume, порт `127.0.0.1:8081`
+- 18.11 — pre-auth DoS закрыт: username+IP limit, bounded map, Argon2 semaphore/spawn_blocking
+- 18.11 — CSP/HSTS/no-store, Secure default, ArticleSummary, московская дата, SEO, archive, 401/dirty guard
+- 18.11 — reserved slug, cache headers, orphan upload cleanup, lazy images, hardened container
+- 18.11 — расширенный smoke: 30+ проверок; stress limiter: 1100 запросов, RSS +2,3 МБ
+
+## После перерыва
+
+- [ ] Обновить `docs/backend-guide.md` под код после аудита.
+- [ ] Проверить bundle после feature freeze; не добавлять зависимости без согласования.
+- [ ] Закрепить digest базовых образов перед релизом.
+- [ ] Финальный чек-лист и слияние веток в `main` только после явного «да».

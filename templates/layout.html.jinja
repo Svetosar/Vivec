@@ -4,13 +4,23 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Vivec — школьная газета{% endblock %}</title>
+  <meta name="description" content="{{ meta.description }}">
+  <meta name="robots" content="{{ meta.robots }}">
+  <link rel="canonical" href="{{ meta.canonical }}">
+  <meta property="og:title" content="{{ meta.og_title }}">
+  <meta property="og:description" content="{{ meta.og_description }}">
+  <meta property="og:type" content="{{ meta.og_type }}">
+  <meta property="og:url" content="{{ meta.og_url }}">
+  {% if meta.og_image %}<meta property="og:image" content="{{ meta.og_image }}">{% endif %}
+  <meta name="twitter:card" content="{% if meta.og_image %}summary_large_image{% else %}summary{% endif %}">
+  <link rel="icon" href="/static/favicon.ico">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 <div class="page">
 
   <div class="topbar">
-    <span class="issue-date">{% block issue_date %}{% endblock %}</span>
+    <span class="issue-date">{{ today }}</span>
     <span class="issue-no">Выпуск №1</span>
   </div>
 
@@ -22,10 +32,15 @@
 
   <nav class="nav">
     <a class="nav-item" href="/">Главное</a>
+    <a class="nav-item" href="/archive">Все статьи</a>
     <a class="nav-item" href="/rubric/shkola">Школа</a>
     <a class="nav-item" href="/rubric/sport">Спорт</a>
     <a class="nav-item" href="/rubric/kultura">Культура</a>
     <a class="nav-item" href="/rubric/mneniya">Мнения</a>
+    <form class="nav-search" action="/search" method="get">
+      <input name="q" type="search" value="{{ query|default('') }}" placeholder="Поиск" aria-label="Поиск по газете">
+      <button type="submit">Найти</button>
+    </form>
   </nav>
   {% endblock %}
 

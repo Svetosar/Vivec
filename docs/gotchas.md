@@ -176,3 +176,65 @@ uid 10001 внутри, каталог становится `vivec:vivec`, за�
 Фикс: `features = ["html"]`. Итог: `pulldown-cmark = { version = "0.13.6", default-features = false, features = ["html"] }`.
 Побочное: `ammonia 4.2.5` тянет `html5ever`/`markup5ever` — release-сборка в контейнере
 занимает ~3 минуты (было ~2). Это цена за настоящий HTML-парсер в санитайзере.
+
+### G-024 · `ServeDir::not_found_service` всегда возвращает 404 для SPA
+Статус: проверено · 17.11.2026
+Симптом: `/admin/articles` отдаёт HTML приложения, но HTTP-код 404; роутер Vue после
+загрузки уже не успевает исправить статус.
+Причина: `not_found_service` по документации принудительно выставляет `404` для fallback.
+Фикс: `ServeDir::new("static/admin").fallback(ServeFile::new("static/admin/index.html"))`.
+Проверено: `/admin/articles` → `200`, реальный `/admin/assets/...` → `200`.
+
+### G-025 · create-vue поставил vue-router 5 с уязвимым build-деревом
+Статус: решение · 17.11.2026
+Симптом: `npm audit --omit=dev` показывает 8 high в `vue-router@5` и его build-зависимостях.
+Причина: актуальный шаблон create-vue выбрал router 5, которому для нашей задачи хватает
+стабильного API router 4.
+Фикс: `npm install vue-router@4.6.5`; повторный production-аудит — 0 уязвимостей.
+Dev-дерево всё ещё сообщает high, но Vite/ESLint не входят в серверный контейнер.
+
+### G-026 · md-editor-v3 оставляет split-preview на мобильной ширине
+Статус: решение · 18.11.2026
+Симптом: при ширине 390 px Markdown-редактор показывает две колонки по 50%, правая
+обрезана, хотя `window.matchMedia('(max-width: 760px)')` возвращает `true`.
+Проверено: preview-wrapper остаётся `display: block`, его ширина 50%; inline-ширина input
+тоже 50%.
+Фикс: в мобильном CSS скрыть `.md-editor-preview-wrapper` и принудительно поставить
+`.md-editor-custom-scrollbar { width: 100% !important; }`. Панель инструментов получает
+`flex-wrap: wrap`, чтобы иконки не уходили за экран.
+
+### G-027 · SQLite LIKE/NOCASE не меняет регистр кириллицы
+Статус: проверено · 18.11.2026
+Симптом: поиск `РЕМОНТ` не находит статью, в тексте которой написано `Ремонт`, если
+полагаться на SQLite `LIKE` или `COLLATE NOCASE`.
+Причина: встроенные сравнения SQLite без ICU корректно складывают регистр только для ASCII.
+Фикс для v1: получить опубликованные строки и выполнить Unicode `to_lowercase().contains()`
+в Rust. Проверено: верхний и нижний регистр дают одинаковый результат, черновик не попадает
+в выдачу. FTS5 `trigram` остаётся после сдачи.
+
+### G-028 · podman-compose ломает `$` в Argon2-хеше из `environment`
+Статус: проверено · 18.11.2026
+Симптом: после `podman-compose config` Argon2-строка теряла части после `$`;
+login не мог разобрать хеш.
+Причина: compose выполняет собственную подстановку переменных в scalar-значениях.
+Фикс: перенести `ADMIN_PASSWORD_HASH` и остальные env в `env_file: vivec.env`;
+значения env-файла передаются контейнеру без shell-интерполяции.
+Проверено реальным login `editor/vivec-test`.
+
+### G-029 · `CARGO_NET_OFFLINE` из `podman build --env` попадает в runtime
+Статус: проверено · 18.11.2026
+Симптом: в `podman image inspect` финального образа видна сборочная переменная,
+хотя приложению она не нужна.
+Причина: `podman build --env` задаёт переменную всем стадиям, включая финальную.
+Фикс: объявить `ARG CARGO_NET_OFFLINE=false` и `ENV` только после `FROM` стадии
+Rust builder; проверять runtime через
+`podman image inspect --format '{{json .Config.Env}}'`.
+
+### G-030 · OCI-образ молча теряет Docker HEALTHCHECK
+Статус: проверено · 18.11.2026
+Симптом: `HEALTHCHECK` указан в Containerfile, но Podman предупреждает, что он
+не поддерживается OCI-форматом; в опубликованном образе проверки нет.
+Причина: Docker healthcheck хранится в конфигурации Docker-манифеста, а OCI
+image config не переносит его автоматически.
+Фикс: для образа с healthcheck собирать `podman build --format docker`; после
+публикации проверять `.Config.Healthcheck` в `podman image inspect`.

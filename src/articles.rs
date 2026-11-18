@@ -13,6 +13,8 @@ pub const RUBRICS: [(&str, &str); 4] = [
     ("Мнения", "mneniya"),
 ];
 
+pub const SEARCH_LIMIT: usize = 20;
+
 /// Русское имя рубрики по её slug из адреса.
 pub fn rubric_name(rubric_slug: &str) -> Option<&'static str> {
     RUBRICS
@@ -23,6 +25,18 @@ pub fn rubric_name(rubric_slug: &str) -> Option<&'static str> {
 
 /// Статья в том виде, в каком её видят шаблоны.
 /// `Serialize` нужен minijinja, чтобы положить статью в контекст шаблона.
+#[derive(Serialize)]
+pub struct ArticleSummary {
+    pub slug: String,
+    pub title: String,
+    pub rubric: String,
+    pub rubric_slug: String,
+    pub author: String,
+    pub lead: String,
+    pub date: String,
+    pub published_at: Option<String>,
+}
+
 #[derive(Serialize)]
 pub struct Article {
     pub slug: String,
@@ -35,13 +49,33 @@ pub struct Article {
     /// Тело статьи, уже превращённое из markdown в безопасный HTML.
     pub body_html: String,
     pub date: String,
+    pub published_at: Option<String>,
+    pub og_image: Option<String>,
 }
 
-/// Опубликованные статьи, свежие сверху. Запрос текстовый (runtime):
-/// макросы `query!` запрещены правилами проекта.
-pub async fn published(pool: &SqlitePool) -> sqlx::Result<Vec<Article>> {
+/// Опубликованные карточки без полного Markdown: главная не должна
+/// рендерить и санитайзить весь архив на каждый запрос.
+pub async fn published_summaries(
+    pool: &SqlitePool,
+    limit: usize,
+) -> sqlx::Result<Vec<ArticleSummary>> {
     let rows = sqlx::query(
-        "SELECT slug, title, rubric, author, lead, body_md, published_at
+        "SELECT slug, title, rubric, author, lead, published_at
+           FROM articles
+          WHERE published = 1
+          ORDER BY published_at DESC, id DESC
+          LIMIT ?",
+    )
+    .bind(limit as i64)
+    .fetch_all(pool)
+    .await?;
+
+    rows.into_iter().map(to_summary).collect()
+}
+
+pub async fn archive(pool: &SqlitePool) -> sqlx::Result<Vec<ArticleSummary>> {
+    let rows = sqlx::query(
+        "SELECT slug, title, rubric, author, lead, published_at
            FROM articles
           WHERE published = 1
           ORDER BY published_at DESC, id DESC",
@@ -49,7 +83,7 @@ pub async fn published(pool: &SqlitePool) -> sqlx::Result<Vec<Article>> {
     .fetch_all(pool)
     .await?;
 
-    rows.into_iter().map(to_article).collect()
+    rows.into_iter().map(to_summary).collect()
 }
 
 /// Одна статья по slug. Черновики наружу не отдаём.
@@ -66,13 +100,70 @@ pub async fn by_slug(pool: &SqlitePool, slug: &str) -> sqlx::Result<Option<Artic
     row.map(to_article).transpose()
 }
 
-/// Статьи одной рубрики. В базе рубрика записана по-русски, в адресе —
-/// транслит, поэтому фильтруем в Rust: статей у школьной газеты немного,
-/// лишний SELECT по всем строкам дешевле, чем отдельная колонка со slug.
-pub async fn by_rubric(pool: &SqlitePool, rubric_slug: &str) -> sqlx::Result<Vec<Article>> {
-    let mut list = published(pool).await?;
-    list.retain(|a| a.rubric_slug == rubric_slug);
-    Ok(list)
+pub async fn by_rubric(
+    pool: &SqlitePool,
+    rubric: &str,
+    limit: usize,
+) -> sqlx::Result<Vec<ArticleSummary>> {
+    let rows = sqlx::query(
+        "SELECT slug, title, rubric, author, lead, published_at
+           FROM articles
+          WHERE published = 1 AND rubric = ?
+          ORDER BY published_at DESC, id DESC
+          LIMIT ?",
+    )
+    .bind(rubric)
+    .bind(limit as i64)
+    .fetch_all(pool)
+    .await?;
+
+    rows.into_iter().map(to_summary).collect()
+}
+
+/// Поиск по опубликованным статьям без SQLite `NOCASE`: он не меняет
+/// регистр кириллицы. Для школьного объёма фильтрация в Rust предсказуемее.
+pub async fn search(pool: &SqlitePool, query: &str) -> sqlx::Result<Vec<ArticleSummary>> {
+    let needle = query.to_lowercase();
+    let rows = sqlx::query(
+        "SELECT slug, title, rubric, author, lead, published_at
+           FROM articles
+          WHERE published = 1
+          ORDER BY published_at DESC, id DESC",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let mut found = Vec::new();
+    for row in rows {
+        let title: String = row.try_get("title")?;
+        let author: String = row.try_get("author")?;
+        let lead: String = row.try_get("lead")?;
+        let matches = [title, author, lead]
+            .iter()
+            .any(|value| value.to_lowercase().contains(&needle));
+        if matches {
+            found.push(to_summary(row)?);
+        }
+        if found.len() == SEARCH_LIMIT {
+            break;
+        }
+    }
+    Ok(found)
+}
+
+fn to_summary(row: sqlx::sqlite::SqliteRow) -> sqlx::Result<ArticleSummary> {
+    let published_at: Option<String> = row.try_get("published_at")?;
+    let rubric: String = row.try_get("rubric")?;
+    Ok(ArticleSummary {
+        slug: row.try_get("slug")?,
+        title: row.try_get("title")?,
+        rubric_slug: slug::translit(&rubric),
+        rubric,
+        author: row.try_get("author")?,
+        lead: row.try_get("lead")?,
+        date: ru_date(published_at.as_deref().unwrap_or("")),
+        published_at,
+    })
 }
 
 /// Разбор строки базы. `try_get` вместо derive: одно место, где видно
@@ -91,6 +182,8 @@ fn to_article(row: sqlx::sqlite::SqliteRow) -> sqlx::Result<Article> {
         lead: row.try_get("lead")?,
         body_html: markdown::to_html(&body),
         date: ru_date(published_at.as_deref().unwrap_or("")),
+        published_at,
+        og_image: markdown::first_image(&body),
     })
 }
 

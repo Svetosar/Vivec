@@ -264,3 +264,245 @@
 **Сломалось**
 - После прерванной git-команды `src/1.html` оказался в индексе. Файл убран из
   индекса без изменения содержимого и без удаления.
+
+**Уточнение пользователя**
+- `src/1.html` удалён пользователем намеренно, восстанавливать не нужно.
+- `README.md` и другие пользовательские/юридические файлы агент не редактирует,
+  но их актуальные версии и изменения пользователя включает в коммиты как есть.
+
+## 2026-11-17 — Vue-админка, upload и конец сессии
+
+**Сделано**
+- `create-vue` без TypeScript и Pinia: login, список статей, форма редактора,
+  `vue-router`, единый `api.js`, responsive CSS.
+- `md-editor-v3` 7.1.0: проверен локальный `onUploadImg(files, callback)`.
+- Upload: JPEG/PNG/WebP/GIF по сигнатуре через `infer`, случайное имя, 8 МиБ,
+  файлы в `DATA_DIR/uploads`, раздача через `/uploads`.
+- CSRF-заголовок для всех admin-мутаций, security headers и лимиты тела.
+- SPA отдаётся Rust-сервером из `static/admin`; Node на сервере не работает.
+- Production-аудит npm: 0 уязвимостей; dev-дерево содержит 8 high, но в серверный
+  образ и клиентский production bundle они не входят.
+
+**Проверено запуском**
+- `cargo fmt --check`, 6 тестов, Clippy и release-кандидат debug-бинарника — чисто.
+- `npm run lint` и `npm run build` — чисто.
+- `/admin/` → 200, `/admin/articles` после SPA fallback → 200, asset → 200.
+- Login без CSRF → 403; с CSRF → 200.
+- PNG upload → 200 и `/uploads/...` → 200; CSS как upload → 400.
+- `X-Content-Type-Options` и `Referrer-Policy` присутствуют.
+
+**Сломалось**
+- `ServeDir::not_found_service` намеренно возвращает 404 даже с index.html SPA.
+  Исправлено на `.fallback(ServeFile::new(index))`, после чего deep link даёт 200.
+- create-vue поставил `vue-router` 5, который тянул уязвимые build-пакеты в
+  production-аудит. Выбран стабильный `vue-router` 4.6.5.
+- Первый запуск снова использовал старый обычный бинарник после `cargo test`.
+  Перед HTTP-проверкой обязателен отдельный `cargo build --bin vivec`.
+
+**Не проверено**
+- Скриншоты login/list/editor на desktop и 390 px не сняты: пользователь завершил
+  сессию раньше визуального прохода.
+
+**Дальше**
+1. Визуально проверить три экрана и мобильную ширину.
+2. Сделать публичный поиск и исправить пустую дату/стили Markdown-картинок.
+3. Затем `smoke.sh`, deploy/backup scripts и серверный аудит.
+
+## 2026-11-18 — визуальный smoke админки
+
+**Сделано**
+- Headless Chrome через CDP снял login, список и редактор на 1280×820 и 390×844.
+- Контрольные PNG: `.local/ui-screenshots/admin-final2/artifacts/`.
+- Мобильный список статей переведён из обрезанной таблицы в карточки.
+- На мобильном Markdown editor оставлен одной колонкой; preview скрывается,
+  toolbar переносится на несколько строк.
+
+**Проверено**
+- `npm run lint` и `npm run build` — чисто.
+- Login, список и редактор визуально читаемы, действия и статус доступны на 390 px.
+- Desktop split-preview сохранён.
+
+**Сломалось**
+- Динамический prop `preview` не убрал preview-wrapper на узкой ширине.
+  Причина и CSS-фикс записаны в G-026.
+
+## 2026-11-18 — публичный поиск и полировка
+
+**Сделано**
+- `/search?q=...`: поиск по заголовку, автору, лиду и исходному Markdown.
+- Поиск фильтрует Unicode-регистр в Rust; SQLite `LIKE` не подходит для кириллицы (G-027).
+- В шапке показывается актуальная дата из SQLite: день недели, число, месяц, год.
+- В навигацию добавлена поисковая форма, на мобильной ширине — отдельной строкой.
+- Markdown-изображения получили адаптивные стили.
+
+**Проверено запуском**
+- `РЕМОНТ` и `ремонт` находят одинаковый материал.
+- Поиск по слову из тела и лида работает; черновик с тем же словом отсутствует.
+- XSS-запрос `<script>` выводится как `&lt;script&gt;`, raw `<script>` отсутствует.
+- Свежий Rust build, 6 тестов и Clippy — чисто.
+- Headless Chrome: главная, поиск и статья с изображением на 1280×820 и 390×844.
+- PNG: `.local/ui-screenshots/public-search/artifacts/`.
+
+**Урок**
+Для русскоязычного поиска `LIKE` выглядит проще, но даёт неверный UX. Проверка двумя
+регистрами должна входить в smoke-тест поиска.
+
+**Дальше**
+`scripts/smoke.sh`, чек-лист перед объединением веток, затем deploy/backup scripts.
+
+## 2026-11-18 — автоматический smoke
+
+**Сделано**
+- `scripts/smoke.sh` поднимает отдельный сервер на временном `DATA_DIR`.
+- Скрипт проверяет `/healthz`, публичные страницы, SPA, auth, CSRF, CRUD,
+  публикацию, Unicode-поиск, XSS, upload, снятие с публикации и удаление.
+- Временная БД и cookie удаляются через `trap` даже при ошибке.
+
+**Проверено запуском**
+- `SMOKE PASS`, все 20 шагов зелёные.
+- Скрипт использует отдельный порт `18081`, не мешая локальному dev-серверу.
+
+**Дальше**
+Добавить backup-скрипт и проверить восстановление; deploy оставить до аудита сервера.
+
+## 2026-11-18 — backup и проверка восстановления
+
+**Сделано**
+- `scripts/backup.sh`: SQLite `.backup`, `integrity_check`, uploads archive, manifest
+  с SHA-256, хранение 14 дней.
+- `scripts/verify-backup.sh`: восстановление во временный `DATA_DIR`, запуск приложения,
+  `/healthz`, главная, проверка статей и применённой таблицы сессий.
+
+**Проверено запуском**
+- Локальный backup: 4 статьи, integrity `ok`, manifest создан.
+- Restore: `RESTORE PASS`, 4 статьи, сервер поднялся, `sessions=0`.
+- Временная backup-папка после проверки удалена.
+
+**Не сделано**
+- Offsite-копирование и cron/timer зависят от аудита сервера.
+- Нагрузочная проверка ещё не выполнена.
+
+**Дальше**
+Подготовить deploy-конфигурацию после ответа про init/DNS/Caddy, затем нагрузочный smoke.
+
+**Нагрузка проверена**
+- `scripts/load.sh`: 200 запросов при concurrency 10.
+- 902 мс, 221.7 req/s, RSS процесса 22 064 КБ.
+- Все ответы `200`; этот результат измерен на локальной машине, не на сервере 1 ГБ.
+
+## 2026-11-18 — учебный backend-гайд
+
+**Сделано**
+- `docs/backend-guide.md`: разбор всего текущего backend для человека,
+  знающего только Rust Hello World.
+- Разобраны Cargo, SQL, каждый Rust-модуль, auth, API, upload, `main.rs`,
+  SSR-шаблоны, security, ошибки, запуск и `Containerfile`.
+- Сложные строки объясняются по одной; повторяющиеся поля и mapping-таблицы
+  объясняются группами с указанием смысла каждой строки.
+
+**Проверено**
+- Документ содержит 29 разделов и покрывает все backend-файлы текущей ветки.
+- Ссылка добавлена в основной `docs/guide.md`.
+
+## 2026-11-18 — тестовый образ и podman-compose
+
+**Сделано**
+- `Containerfile` получил Node builder-стадию для Vue; Node отсутствует
+  в финальном image.
+- Rust остаётся в отдельной builder-стадии, runtime — Debian + бинарник + static.
+- `VIVEC_SEED_DEMO=1` наполняет только пустую БД четырьмя демо-статьями.
+- `container-test/docker-compose.yml` и `container-test/vivec.env` дают
+  запуск одной командой через `podman-compose`.
+- Используется named volume `vivec-test-data`, порт `127.0.0.1:8081`.
+
+**Проверено запуском**
+- `podman-compose up -d --build` собрал `localhost/vivec:test`.
+- `/`, `/healthz`, `/admin/` → 200.
+- Login `editor/vivec-test` → 200, `/api/admin/me` → 200.
+- В image отсутствует команда `node`.
+- После restart контейнера сессия и SQLite сохранились в named volume.
+- Тестовая статья удалена; остались четыре демо-материала.
+- Healthcheck итогово — `healthy`.
+
+**Сломалось**
+- podman-compose исказил `$`-части Argon2-хеша в `environment`.
+  Исправлено переносом тестовых значений в `env_file`.
+
+## 2026-11-18 — исправление аудита
+
+**P1**
+- Лимитер переведён на username + IP, map ограничены и очищаются.
+- Argon2 выполняется только для известного username, через `spawn_blocking`
+  и семафор на одну проверку.
+- XFF берётся из последнего адреса Caddy; доверие прокси явно через `TRUST_PROXY`.
+- 1100 уникальных попыток: 1024 × 401, 76 × 429, RSS 17,6 → 20,0 МБ.
+
+**P2**
+- Secure cookie по умолчанию.
+- CSP, XFO, HSTS и no-store.
+- Summary без Markdown, SQL-фильтр рубрик, московская дата на запрос.
+- Meta/OG/canonical, robots, sitemap и archive.
+- 401 redirect, dirty guard и Ctrl+S.
+- Deploy env example и Quadlet.
+
+**P3**
+- Reserved slug, Cache-Control, orphan uploads, upload quota, lazy images.
+- Focus-visible, admin noindex, hardened compose.
+
+**Проверено**
+- 11 тестов, Clippy, Vue lint/build, расширенный smoke.
+- Headless Chrome: dirty guard и 401 redirect.
+- Hardened image rebuilt; HTTP, SEO, headers, login и upload проверены.
+
+**Перерыв**
+- Контейнер остановлен; image и named volume сохранены.
+- Временные файлы удалены.
+- Работа лежит в `fix/audit-hardening`, в `main` не слита.
+
+## 2026-11-18 — release prep после аудита
+
+**Сделано**
+- `docs/backend-guide.md` дополнен post-audit изменениями.
+- Базовые образы Node/Rust/Debian закреплены digest.
+- Проверен Vite output: первичный HTML загружает только main chunk; language
+  chunks не входят в preload и нужны только route редактора.
+
+**Проверено**
+- Digest соответствуют локально используемым image.
+- `static/admin` — 2,3 МБ / 126 файлов; это disk footprint, не начальная сеть.
+
+**Дальше**
+Финальный чек-лист и merge только после явного разрешения.
+
+## 2026-11-18 — alpha 0.1.0
+
+**Сделано**
+- Версия проекта и Vue-админки поднята до `0.1.0`.
+- Runtime переведён с Debian на Alpine/musl; Node и Rust остались только в
+  builder-стадиях, бинарник проверен через `ldd`.
+- Добавлены OCI labels, healthcheck через busybox `wget`, offline-режим
+  Cargo ограничен builder-стадией.
+- SQLite-зависимости обновлены до `sqlx 0.9.1` / `libsqlite3-sys 0.39.1`,
+  добавлен индекс для запросов по рубрикам.
+- Docker Hub: `svetosar/vivec:0.1.0` и `latest`, digest
+  `sha256:fc64f8dec3c336f5fd40a7f315b5add7c875efc96350424383bfd671ef7676f0`.
+- Подготовлен вертикальный срез `docs/release-0.1.0.md`.
+
+**Проверено**
+- `cargo fmt`, `cargo check`, Clippy, 11 тестов, `cargo audit` — чисто.
+- Vue lint/build и production `npm audit --omit=dev` — 0 уязвимостей.
+- `scripts/smoke.sh` — `SMOKE PASS`, 29 проверок.
+- Trivy: 0 HIGH/CRITICAL и 0 secrets; Semgrep: 0 findings на 80 файлах.
+- `container-test` поднят через `podman-compose`; `/`, `/archive`, `/healthz`,
+  `/admin/`, логин и `/api/admin/me` отвечают; health — `healthy`.
+- В runtime image нет `CARGO_NET_OFFLINE`, Node отсутствует, UID 10001,
+  `linux/amd64`, `/lib/ld-musl-x86_64.so.1`.
+
+**Урок**
+`podman build --env` может протечь в финальный image. Для сборочных переменных
+нужен `ARG` внутри конкретной стадии, а `HEALTHCHECK` сохраняется только в
+Docker-совместимом формате, не в OCI.
+
+**Дальше**
+После ремонта сервера — аудит ОС/Caddy/Quadlet/SELinux, production env,
+offsite backup, реальный TLS и нагрузка на 1 ГБ RAM.

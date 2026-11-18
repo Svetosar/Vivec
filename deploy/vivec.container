@@ -1,0 +1,22 @@
+[Unit]
+Description=Vivec school newspaper
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=localhost/vivec:latest
+ContainerName=vivec
+PublishPort=127.0.0.1:8081:8080
+Volume=/srv/vivec/data:/data:Z
+EnvironmentFile=/srv/vivec/vivec.env
+UserNS=keep-id:uid=10001,gid=10001
+ReadOnly=true
+Tmpfs=/tmp
+DropCapability=ALL
+NoNewPrivileges=true
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

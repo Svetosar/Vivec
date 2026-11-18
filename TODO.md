@@ -1,6 +1,6 @@
 # TODO — Vivec
 
-Обновлено: 17.11.2026
+Обновлено: 18.11.2026
 Правило: перед задачей — прочитать, после — отметить. Список не живёт в голове.
 
 ## Сейчас
@@ -14,6 +14,14 @@
 - [x] 17.11 — markdown + ammonia, рубрики, транслит slug (сделано 15.11) — **публичная часть готова**
 - [x] 17.11 — подробный учебный гайд `docs/guide.md`
 - [x] 17.11 — правило provenance: каждый коммит помечается `AI-assisted: Codex`
+- [x] 17.11 — README/LICENSE не редактируются ИИ, но включаются в коммиты как есть
+- [x] 18.11 — визуальный smoke login/list/editor на desktop и 390 px
+- [x] 18.11 — подробный построчный гайд по backend `docs/backend-guide.md`
+- [x] 18.11 — тестовый multi-stage image и `container-test` через podman-compose
+- [x] 18.11 — аудит безопасности, оптимизации, SEO и UX → `docs/audit-2026-11-18.md`
+- [x] 18.11 — P1/P2 и основные P3 аудита исправлены → `docs/audit-2026-11-18-fixes.md`
+- [x] 18.11 — alpha `0.1.0`: Alpine/musl image, проверки, Docker Hub и tag
+  → `docs/release-0.1.0.md`
 
 ## План по дням
 
@@ -27,19 +35,20 @@
 ### Фаза B. Админка
 - [x] **18.11** — сессии, argon2, cookie, middleware `/admin/*`, `/api/admin/me` *(сделано 17.11)*
 - [x] **19.11** — JSON API: list/get/create/update/publish/delete, `AppError` *(сделано 17.11)*
-- [ ] **20.11** — `create-vue`, router, логин, таблица статей
-- [ ] **21.11** — форма статьи + `md-editor-v3` *(контрольная точка: Vue тонет → откат на textarea)*
-- [ ] **22.11** — загрузка картинок (multipart, `infer`, лимит 8 МБ)
+- [x] **20.11** — `create-vue`, router, логин, таблица статей *(сделано 17.11)*
+- [x] **21.11** — форма статьи + `md-editor-v3` *(сделано 17.11, визуальный smoke 18.11)*
+- [x] **22.11** — загрузка картинок (multipart, `infer`, лимит 8 МБ) *(сделано 17.11)*
 
 ### Фаза C. Доводка
-- [ ] **23.11** — поиск (`LIKE`), навигация, мобильная вёрстка
-- [ ] **24.11** — безопасность: CSRF-заголовок, лимит логина, заголовки, лимиты тела
-- [ ] **25.11** — `smoke.sh`, чек-лист на 20 пунктов, фикс багов *(буфер)*
+- [x] **23.11** — поиск, навигация, мобильная вёрстка *(сделано 18.11; Unicode-поиск вместо `LIKE`)*
+- [x] **24.11** — безопасность: CSRF-заголовок, лимит логина, заголовки, лимиты тела *(сделано 17.11)*
+- [x] **25.11** — `smoke.sh`, чек-лист на 20 пунктов, фикс багов *(сделано 18.11)*
 - [ ] **26.11** — **FEATURE FREEZE**, README, инструкция редактору
 
 ### Фаза D. Сдача
+- [x] **18.11** — alpha `0.1.0`: image, smoke, security scans, Docker Hub
 - [ ] **27.11** — репетиция деплоя с нуля по README
-- [ ] **28.11** — бэкапы + **проверенное восстановление** + нагрузка
+- [x] **28.11** — бэкапы + **проверенное восстановление** + нагрузка *(сделано 18.11)*
 - [ ] **29.11** — только баги, 5–7 реальных статей, скриншоты
 - [ ] **30.11** — демо на 5 минут, тег `v1.0`
 
@@ -58,7 +67,7 @@
 - [ ] Текущий `Caddyfile`: какие site-блоки уже есть, где слушает панель 3x-ui
 - [ ] SELinux на сервере (влияет на `:Z` в томах)
 - [ ] Один админ или несколько редакторов (пока один)
-- [ ] `src/1.html` — твой учебный файл, лежит вне git: закоммитить, удалить или добавить в `.gitignore`?
+- [x] `src/1.html` — удалён пользователем намеренно, зафиксировано в git
 
 ## Потом (только после сдачи)
 
@@ -83,3 +92,32 @@
 - 17.11 — auth: Argon2id, серверные сессии в SQLite, cookie, rate limit, `/api/admin/me`; проверено login/logout
 - 17.11 — admin API: CRUD статей и публикация; проверено черновиком, публикацией, `409`, удалением
 - 17.11 — каждый новый коммит обязан содержать строку `AI-assisted: Codex`
+- 17.11 — `src/1.html` удалён пользователем намеренно; README и юридические файлы редактирует только пользователь, но они включаются в коммиты
+- 17.11 — Vue 3/Vite/router/login/list/editor, `md-editor-v3`, responsive CSS; сборка проходит
+- 17.11 — upload (`infer`, JPEG/PNG/WebP/GIF, 8 МиБ), `/uploads`, CSRF и security headers
+- 17.11 — SPA fallback `/admin/*` исправлен и проверен; `/admin/articles` и asset отдают `200`
+- 18.11 — следующий шаг: визуальный smoke login/list/editor на desktop и 390 px, затем поиск
+- 18.11 — визуальный smoke пройден; мобильный список переведён в карточки, Markdown editor одноколоночный
+- 18.11 — публичный поиск по title/author/lead/body, актуальная дата, Markdown-изображения, mobile nav
+- 18.11 — поиск проверен в верхнем/нижнем регистре, черновики исключены, XSS-запрос экранирован
+- 18.11 — `scripts/smoke.sh`: 20 проверок auth/API/поиска/upload/XSS на временной БД
+- 18.11 — `scripts/backup.sh` + `scripts/verify-backup.sh`; восстановление 4 статей проверено живым запуском
+- 18.11 — `scripts/load.sh`: 200 запросов, 10 параллельно, 221.7 req/s, RSS 22 МБ локально
+- 18.11 — backend-гайд: Rust-синтаксис, Cargo, SQL, auth, API, upload, main, template и Containerfile
+- 18.11 — образ `localhost/vivec:test`: Vue builder + Rust release + Debian runtime без Node
+- 18.11 — `container-test/`: login `editor/vivec-test`, 4 демо-статьи, named volume, порт `127.0.0.1:8081`
+- 18.11 — pre-auth DoS закрыт: username+IP limit, bounded map, Argon2 semaphore/spawn_blocking
+- 18.11 — CSP/HSTS/no-store, Secure default, ArticleSummary, московская дата, SEO, archive, 401/dirty guard
+- 18.11 — reserved slug, cache headers, orphan upload cleanup, lazy images, hardened container
+- 18.11 — расширенный smoke: 30+ проверок; stress limiter: 1100 запросов, RSS +2,3 МБ
+- 18.11 — alpha 0.1.0: Alpine/musl, non-root image, Docker Hub digest
+  `sha256:fc64f8dec3c336f5fd40a7f315b5add7c875efc96350424383bfd671ef7676f0`,
+  `docs/release-0.1.0.md`
+
+## После перерыва
+
+- [x] Обновить `docs/backend-guide.md` под код после аудита.
+- [x] Проверить bundle: language chunks не входят в первичный preload.
+- [x] Закрепить digest базовых образов в `Containerfile`.
+- [x] Финальный чек-лист и слияние веток в `main` только после явного «да».
+- [x] Опубликовать `svetosar/vivec:0.1.0` и `latest`, поставить Git-тег.

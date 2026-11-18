@@ -83,6 +83,41 @@ a { color: inherit; text-decoration: none; }
 
 .nav-item:hover { color: var(--accent); }
 
+.nav-search {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border-bottom: 1px solid var(--line);
+}
+
+.nav-search input {
+  width: 92px;
+  border: 0;
+  padding: 3px 0;
+  background: transparent;
+  color: var(--ink);
+  font: 400 11px/1.4 var(--sans);
+  outline: none;
+}
+
+.nav-search input:focus { width: 130px; }
+
+.nav-search input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.nav-search button {
+  border: 0;
+  padding: 3px 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font: 400 10px/1.4 var(--sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 /* --- главная ---------------------------------------------------------- */
 
 .hero {
@@ -322,6 +357,13 @@ a { color: inherit; text-decoration: none; }
 
 .article-body strong { font-weight: 700; }
 
+.article-body img {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #edeae3;
+}
+
 .article-rubric a:hover,
 .card-rubric a:hover,
 .kicker a:hover { color: var(--ink); }
@@ -396,6 +438,15 @@ a { color: inherit; text-decoration: none; }
   margin-top: 20px;
 }
 
+/* --- поиск ------------------------------------------------------------ */
+
+.search-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 44px 56px 52px;
+}
+
 /* --- подвал ----------------------------------------------------------- */
 
 .footer {
@@ -419,6 +470,9 @@ a { color: inherit; text-decoration: none; }
   .tagline { font-size: 10px; letter-spacing: 0.16em; }
   .nav { gap: 16px; padding: 12px 20px; }
   .nav-item { font-size: 11px; }
+  .nav-search { width: 100%; justify-content: center; }
+  .nav-search input,
+  .nav-search input:focus { width: min(240px, 70vw); }
   .hero { padding: 24px 20px; gap: 10px; }
   .hero-lead { font-size: 1rem; }
   .card-list { flex-direction: column; gap: 20px; padding: 24px 20px 28px; }
@@ -429,6 +483,7 @@ a { color: inherit; text-decoration: none; }
   .masthead-small { padding: 16px 20px; }
   .article-wrap { padding: 28px 20px 36px; }
   .rubric-wrap { padding: 28px 20px 36px; }
+  .search-wrap { padding: 28px 20px 36px; }
   .rubric-title { font-size: 1.75rem; }
   .rubric-item-title { font-size: 1.25rem; }
   .footer { padding: 20px 20px 24px; font-size: 10px; }

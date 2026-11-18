@@ -15,6 +15,7 @@
 - [x] 17.11 — подробный учебный гайд `docs/guide.md`
 - [x] 17.11 — правило provenance: каждый коммит помечается `AI-assisted: Codex`
 - [x] 17.11 — README/LICENSE не редактируются ИИ, но включаются в коммиты как есть
+- [x] 18.11 — визуальный smoke login/list/editor на desktop и 390 px
 
 ## План по дням
 
@@ -29,7 +30,7 @@
 - [x] **18.11** — сессии, argon2, cookie, middleware `/admin/*`, `/api/admin/me` *(сделано 17.11)*
 - [x] **19.11** — JSON API: list/get/create/update/publish/delete, `AppError` *(сделано 17.11)*
 - [x] **20.11** — `create-vue`, router, логин, таблица статей *(сделано 17.11)*
-- [x] **21.11** — форма статьи + `md-editor-v3` *(сделано 17.11; визуальный smoke ещё нужен)*
+- [x] **21.11** — форма статьи + `md-editor-v3` *(сделано 17.11, визуальный smoke 18.11)*
 - [x] **22.11** — загрузка картинок (multipart, `infer`, лимит 8 МБ) *(сделано 17.11)*
 
 ### Фаза C. Доводка
@@ -89,3 +90,4 @@
 - 17.11 — upload (`infer`, JPEG/PNG/WebP/GIF, 8 МиБ), `/uploads`, CSRF и security headers
 - 17.11 — SPA fallback `/admin/*` исправлен и проверен; `/admin/articles` и asset отдают `200`
 - 18.11 — следующий шаг: визуальный smoke login/list/editor на desktop и 390 px, затем поиск
+- 18.11 — визуальный smoke пройден; мобильный список переведён в карточки, Markdown editor одноколоночный

@@ -441,6 +441,63 @@ textarea:focus {
     flex-direction: column;
   }
 
+  .article-table-wrap {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .article-table,
+  .article-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .article-table thead {
+    display: none;
+  }
+
+  .article-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px 16px;
+    margin-bottom: 16px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    background: var(--paper);
+  }
+
+  .article-table td {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+
+  .article-table td:first-child {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  .article-table td:nth-child(2) {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: center;
+  }
+
+  .article-table td:nth-child(3) {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: center;
+    color: var(--muted);
+  }
+
+  .article-table td:nth-child(4) {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+  }
+
   .field-grid {
     grid-template-columns: 1fr;
     padding: 18px;
@@ -448,6 +505,24 @@ textarea:focus {
 
   .field-wide {
     grid-column: auto;
+  }
+
+  .markdown-field .md-editor-custom-scrollbar {
+    width: 100% !important;
+  }
+
+  .markdown-field .md-editor-preview-wrapper {
+    display: none !important;
+  }
+
+  .markdown-field .md-editor-toolbar-wrapper {
+    overflow-x: hidden;
+  }
+
+  .markdown-field .md-editor-toolbar,
+  .markdown-field .md-editor-toolbar-left,
+  .markdown-field .md-editor-toolbar-right {
+    flex-wrap: wrap;
   }
 
   .row-actions {

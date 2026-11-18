@@ -192,3 +192,13 @@ uid 10001 внутри, каталог становится `vivec:vivec`, за�
 стабильного API router 4.
 Фикс: `npm install vue-router@4.6.5`; повторный production-аудит — 0 уязвимостей.
 Dev-дерево всё ещё сообщает high, но Vite/ESLint не входят в серверный контейнер.
+
+### G-026 · md-editor-v3 оставляет split-preview на мобильной ширине
+Статус: решение · 18.11.2026
+Симптом: при ширине 390 px Markdown-редактор показывает две колонки по 50%, правая
+обрезана, хотя `window.matchMedia('(max-width: 760px)')` возвращает `true`.
+Проверено: preview-wrapper остаётся `display: block`, его ширина 50%; inline-ширина input
+тоже 50%.
+Фикс: в мобильном CSS скрыть `.md-editor-preview-wrapper` и принудительно поставить
+`.md-editor-custom-scrollbar { width: 100% !important; }`. Панель инструментов получает
+`flex-wrap: wrap`, чтобы иконки не уходили за экран.

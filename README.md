@@ -7,7 +7,7 @@
 ### Контрибьютинг
 Я привествую любые предожения и багфиксы. Репозиотрий будет доступен и на codeberg и на github. Просьба писать по делу а не флудить. После выпуска первой мажроной версии я напишу что нужно было бы сделать а так же Roadmap. Всех желающих жду в Issues и PR
 
-##Ссылки
+## Ссылки
 Github: https://github.com/Svetosar/Newspaper-Rakuhki-site.git
 Codeberg: https://codeberg.org/Svetosar4182/Newspaper-Rakushki-site.git
 Docker hub

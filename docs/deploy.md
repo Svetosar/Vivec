@@ -110,6 +110,15 @@ VIVEC_BACKUP_DIR=/srv/vivec/backups ./scripts/verify-backup.sh
 Скрипт разворачивает последний backup во временный `DATA_DIR`, запускает приложение
 и проверяет `/healthz` и главную. Расписание cron/timer добавить после аудита init-системы.
 
+Локальная нагрузочная проверка:
+
+```sh
+./scripts/load.sh
+```
+
+По умолчанию: 200 запросов, concurrency 10, временная БД. Скрипт печатает
+время, req/s и фактический RSS (`/proc/<pid>/status`, не `podman stats`).
+
 ## Ещё не сделано
 
 - `scripts/deploy.sh` — после ответов на аудит: точные команды и проверки.
